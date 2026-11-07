@@ -2,7 +2,7 @@
 
 The original visual and interaction foundation shared by all ten Brightdesk products.
 
-<badge>Bootstrap repository — implementation not yet present</badge>
+> **Status:** Bootstrap repository — implementation not yet present.
 
 ## Purpose
 
