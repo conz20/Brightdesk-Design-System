@@ -327,3 +327,26 @@ test('keeps the selected face and clamps its axes when local font metadata refre
   assert.deepEqual(value.axes, { wdth: 110 });
   assert.equal(picker.element.queryByControl('axis-wdth').value, '110');
 });
+
+
+test('uses the installed face style when a family has no normal face', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: systemCollection([
+      {
+        familyName: 'Italic Only',
+        faces: [{
+          faceName: 'Italic Only Italic',
+          style: 'italic',
+          weight: 400,
+          italic: true,
+          oblique: false,
+          axes: []
+        }]
+      }
+    ])
+  });
+
+  assert.equal(picker.getValue().faceName, 'Italic Only Italic');
+  assert.equal(picker.getValue().style, 'italic');
+});
