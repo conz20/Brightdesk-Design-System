@@ -178,3 +178,105 @@ test('shows an honest empty state when no local fonts are available', () => {
   assert.equal(preview.textContent, 'No installed fonts were found.');
   assert.equal(picker.getValue().familyName, '');
 });
+
+
+test('lets the user choose an installed face and adjust its variable font axes', () => {
+  const collection = systemCollection([
+    {
+      familyName: 'Segoe UI Variable',
+      faces: [
+        {
+          faceName: 'Segoe UI Variable Text',
+          style: 'normal',
+          weight: 400,
+          italic: false,
+          oblique: false,
+          axes: [
+            { tag: 'wght', min: 300, default: 400, max: 700 },
+            { tag: 'wdth', min: 75, default: 100, max: 125 },
+            { tag: 'opsz', min: 8, default: 14, max: 72 }
+          ]
+        }
+      ]
+    }
+  ]);
+  const changes = [];
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection,
+    initialValue: {
+      familyName: 'Segoe UI Variable',
+      faceName: 'Segoe UI Variable Text',
+      fontSizePt: 12,
+      weight: 400,
+      style: 'normal',
+      axes: { wdth: 90, opsz: 18 }
+    },
+    onChange: value => changes.push(value)
+  });
+
+  const face = picker.element.queryByControl('face');
+  const width = picker.element.queryByControl('axis-wdth');
+  const opticalSize = picker.element.queryByControl('axis-opsz');
+  const preview = picker.element.queryByControl('preview');
+
+  assert.ok(face);
+  assert.equal(face.attributes['aria-label'], 'Installed font face');
+  assert.equal(face.children[0].textContent, 'Segoe UI Variable Text');
+  assert.equal(width.value, '90');
+  assert.equal(opticalSize.value, '18');
+
+  width.value = '110';
+  width.dispatch('input');
+
+  assert.equal(preview.style.fontVariationSettings, '"wdth" 110, "opsz" 18');
+  assert.equal(picker.getValue().faceName, 'Segoe UI Variable Text');
+  assert.deepEqual(picker.getValue().axes, { wdth: 110, opsz: 18 });
+  assert.deepEqual(changes.at(-1).axes, { wdth: 110, opsz: 18 });
+});
+
+test('updates the selected face defaults and removes axes unavailable on the new face', () => {
+  const collection = systemCollection([
+    {
+      familyName: 'Example Variable',
+      faces: [
+        {
+          faceName: 'Example Variable Regular',
+          style: 'normal',
+          weight: 400,
+          italic: false,
+          oblique: false,
+          axes: [{ tag: 'wdth', min: 80, default: 100, max: 120 }]
+        },
+        {
+          faceName: 'Example Variable Semibold Italic',
+          style: 'italic',
+          weight: 600,
+          italic: true,
+          oblique: false,
+          axes: []
+        }
+      ]
+    }
+  ]);
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection,
+    initialValue: {
+      familyName: 'Example Variable',
+      faceName: 'Example Variable Regular',
+      axes: { wdth: 110 }
+    }
+  });
+
+  const face = picker.element.queryByControl('face');
+  face.value = '1';
+  face.dispatch('change');
+
+  assert.equal(picker.getValue().faceName, 'Example Variable Semibold Italic');
+  assert.equal(picker.getValue().weight, 600);
+  assert.equal(picker.getValue().style, 'italic');
+  assert.deepEqual(picker.getValue().axes, {});
+  assert.equal(picker.element.queryByControl('axis-wdth'), null);
+  assert.equal(picker.element.queryByControl('preview').style.fontVariationSettings, 'normal');
+});
