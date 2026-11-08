@@ -13,12 +13,20 @@ The canonical visual foundation for the ten Brightdesk Office Suite products.
 Each individual product edition receives its product identity from its existing launch argument. In that mode, the window:
 
 - opens directly into the selected product workspace;
-- removes the Suite product-management sidebar and generic welcome banner;
+- replaces Suite product-management navigation with the product's own labelled navigation rail and removes the generic welcome banner;
 - keeps the product name, product icon, local-save state and relevant file actions visible;
 - gives the product workspace the remaining window area;
+- adapts navigation between a 232 px expanded rail (1008 px and wider), a 76 px compact icon rail (641–1007 px), and a menu button at 640 px and below that opens the navigation over the workspace;
 - keeps domain-specific navigation inside the product workspace where that feature exists.
 
 The Suite itself does not receive the product-window class. Its Home, Apps, Files and product-switching experience therefore remains separate.
+
+
+## Navigation reference
+
+![Brightdesk navigation states](assets/navigation-states.svg)
+
+The Suite uses a fixed 192 px labelled rail with no expand/collapse control. Individual product windows use the adaptive states above. The reference SVG is original Brightdesk design artwork, not a screenshot from a running desktop build.
 
 ## Product workspace orientation
 
