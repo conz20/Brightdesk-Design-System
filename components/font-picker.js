@@ -409,6 +409,7 @@ export function createFontPicker({
     preview.style.fontWeight = String(value.weight);
     preview.style.fontStyle = value.style;
     const variationSettings = Object.entries(value.axes)
+      .filter(([tag]) => tag !== 'wght')
       .map(([tag, amount]) => '"' + tag + '" ' + amount)
       .join(', ');
     preview.style.fontVariationSettings = variationSettings || 'normal';
@@ -454,8 +455,8 @@ export function createFontPicker({
   specimenInput.value = typeof initialValue.text === 'string' ? initialValue.text.slice(0, 240) : DEFAULT_SPECIMEN;
   rebuildFamilyOptions(initialFamily, {
     faceName: initialValue.faceName,
-    style: initialValue.style,
-    weight: initialValue.weight,
+    style: initialValue.style === undefined ? 'normal' : initialValue.style,
+    weight: initialValue.weight === undefined ? 400 : initialValue.weight,
     axes: initialValue.axes
   });
   if (initialValue.weight !== undefined) weightInput.value = String(initialValue.weight);
