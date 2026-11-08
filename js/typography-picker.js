@@ -52,8 +52,11 @@
 
   /** Escape an untrusted OS font name as one CSS string token. */
   function escapeCssFamilyName(value) {
-    const name = cleanFamilyName(value);
-    if (!name) return '';
+    if (typeof value !== 'string' || value.length === 0 ||
+        value.length > MAX_FAMILY_NAME_LENGTH || value.trim().length === 0) {
+      return '';
+    }
+    const name = value;
     let escaped = '';
     for (const character of name) {
       const code = character.codePointAt(0);
