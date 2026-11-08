@@ -105,6 +105,20 @@ test('rejects malformed local font metadata rather than silently guessing', () =
   );
 });
 
+test('does not collapse variable faces with different declared axis ranges', () => {
+  const result = normalizeFontFamilies(systemCollection([
+    {
+      familyName: 'Variable Example',
+      faces: [
+        { faceName: 'Variable Example', style: 'normal', weight: 400, italic: false, oblique: false, axes: [{ tag: 'wght', min: 200, default: 400, max: 900 }] },
+        { faceName: 'Variable Example', style: 'normal', weight: 400, italic: false, oblique: false, axes: [{ tag: 'wght', min: 300, default: 400, max: 700 }] }
+      ]
+    }
+  ]));
+
+  assert.equal(result[0].faces.length, 2);
+});
+
 test('escapes quotes, backslashes and control characters in CSS family names', () => {
   assert.equal(escapeFontFamily('A "quoted" \\ family'), '"A \\"quoted\\" \\\\ family", sans-serif');
   assert.match(escapeFontFamily('A\u0001B'), /\\1 /);
@@ -126,7 +140,7 @@ test('creates labelled controls and updates the local preview when a setting cha
   const preview = picker.element.queryByControl('preview');
 
   assert.equal(family.attributes['aria-label'], 'Font family');
-  assert.equal(size.attributes['aria-label'], 'Font size');
+  assert.equal(size.attributes['aria-label'], 'Font size (points)');
   assert.equal(weight.attributes['aria-label'], 'Font weight');
   assert.equal(italic.attributes['aria-label'], 'Italic');
   assert.equal(specimen.attributes['aria-label'], 'Preview text');
@@ -138,13 +152,13 @@ test('creates labelled controls and updates the local preview when a setting cha
   specimen.value = 'Brightdesk local preview';
   size.dispatch('input');
 
-  assert.equal(preview.style.fontSize, '18px');
+  assert.equal(preview.style.fontSize, '24px');
   assert.equal(preview.style.fontWeight, '650');
   assert.equal(preview.style.fontStyle, 'italic');
   assert.equal(preview.textContent, 'Brightdesk local preview');
   assert.deepEqual(changes.at(-1), {
     familyName: 'Aptos',
-    sizePx: 18,
+    fontSizePt: 18,
     weight: 650,
     style: 'italic',
     text: 'Brightdesk local preview'
