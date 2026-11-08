@@ -199,6 +199,8 @@ export function createFontPicker({
 
   const controls = createElement(document, 'div', 'bd-font-picker__controls');
   const familySelect = createElement(document, 'select', 'bd-font-picker__family', 'family');
+  const faceSelect = createElement(document, 'select', 'bd-font-picker__face', 'face');
+  const axisControls = createElement(document, 'div', 'bd-font-picker__axes', 'axes');
   const sizeInput = createElement(document, 'input', 'bd-font-picker__size', 'size');
   sizeInput.type = 'number';
   sizeInput.min = String(MIN_FONT_SIZE);
@@ -225,27 +227,131 @@ export function createFontPicker({
 
   controls.append(
     createLabel(document, 'Font family', familySelect, 'bd-font-picker__field bd-font-picker__field--family'),
+    createLabel(document, 'Installed font face', faceSelect, 'bd-font-picker__field bd-font-picker__field--face'),
     createLabel(document, 'Font size (points)', sizeInput, 'bd-font-picker__field'),
     createLabel(document, 'Font weight', weightInput, 'bd-font-picker__field'),
     createLabel(document, 'Italic', italicInput, 'bd-font-picker__field bd-font-picker__field--checkbox')
   );
   root.append(
     controls,
+    axisControls,
     createLabel(document, 'Preview text', specimenInput, 'bd-font-picker__specimen-field'),
     preview
   );
 
+  let axisInputs = new Map();
+
+  function selectedFamily() {
+    return families.find(family => family.familyName === familySelect.value) || null;
+  }
+
+  function selectedFace() {
+    const family = selectedFamily();
+    if (!family || faceSelect.value === '') return null;
+    return family.faces[Number(faceSelect.value)] || null;
+  }
+
   function currentValue() {
+    const face = selectedFace();
+    const weightAxis = face && face.axes.find(axis => axis.tag === 'wght');
+    const minimumWeight = weightAxis ? Math.ceil(weightAxis.min) : 1;
+    const maximumWeight = weightAxis ? Math.floor(weightAxis.max) : 1000;
+    const weight = boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400);
+    const axes = {};
+    if (weightAxis) axes.wght = weight;
+    for (const [tag, input] of axisInputs) axes[tag] = Number(input.value);
+
     return {
       familyName: familySelect.value,
+      faceName: face ? face.faceName : '',
       fontSizePt: boundedInteger(sizeInput.value, MIN_FONT_SIZE, MAX_FONT_SIZE, 12),
-      weight: boundedInteger(weightInput.value, 1, 1000, 400),
-      style: italicInput.checked ? 'italic' : 'normal',
+      weight,
+      style: italicInput.checked ? 'italic' : (face && face.style === 'oblique' ? 'oblique' : 'normal'),
+      axes,
       text: specimenInput.value
     };
   }
 
-  function rebuildFamilyOptions(preferredFamily) {
+  function axisLabel(tag) {
+    const labels = {
+      wdth: 'Width',
+      opsz: 'Optical size',
+      slnt: 'Slant',
+      ital: 'Italic axis',
+      GRAD: 'Grade'
+    };
+    return labels[tag] || tag;
+  }
+
+  function renderAxisControls(face, preferredAxes = {}) {
+    axisControls.replaceChildren();
+    axisInputs = new Map();
+    const axes = face ? face.axes : [];
+    const weightAxis = axes.find(axis => axis.tag === 'wght');
+    weightInput.min = String(weightAxis ? Math.ceil(weightAxis.min) : 1);
+    weightInput.max = String(weightAxis ? Math.floor(weightAxis.max) : 1000);
+    weightInput.step = '1';
+
+    for (const axis of axes) {
+      if (axis.tag === 'wght') continue;
+      const label = createElement(document, 'label', 'bd-font-picker__axis-field');
+      const caption = createElement(document, 'span');
+      caption.textContent = axisLabel(axis.tag) + ' (' + axis.tag + ')';
+      const input = createElement(document, 'input', 'bd-font-picker__axis', 'axis-' + axis.tag.toLowerCase());
+      input.type = 'range';
+      input.min = String(axis.min);
+      input.max = String(axis.max);
+      input.step = 'any';
+      const requested = preferredAxes[axis.tag] === undefined ? axis.default : preferredAxes[axis.tag];
+      const numeric = Number(requested);
+      input.value = String(Number.isFinite(numeric) ? Math.min(axis.max, Math.max(axis.min, numeric)) : axis.default);
+      input.setAttribute('aria-label', caption.textContent);
+      label.append(caption, input);
+      axisControls.append(label);
+      axisInputs.set(axis.tag, input);
+      input.addEventListener('input', update);
+    }
+    axisControls.hidden = axisInputs.size === 0;
+  }
+
+  function rebuildFaceOptions(preferred = {}) {
+    faceSelect.replaceChildren();
+    const family = selectedFamily();
+    if (!family) {
+      faceSelect.disabled = true;
+      renderAxisControls(null);
+      return;
+    }
+
+    for (const [index, face] of family.faces.entries()) {
+      const option = createElement(document, 'option');
+      option.value = String(index);
+      option.textContent = face.faceName;
+      faceSelect.append(option);
+    }
+
+    const preferredIndex = family.faces.findIndex(face =>
+      (preferred.faceName && face.faceName === preferred.faceName) &&
+      (!preferred.style || face.style === preferred.style) &&
+      (preferred.weight === undefined || face.weight === preferred.weight)
+    );
+    const styleWeightIndex = family.faces.findIndex(face =>
+      (!preferred.style || face.style === preferred.style) &&
+      (preferred.weight === undefined || face.weight === preferred.weight)
+    );
+    const selectedIndex = preferredIndex >= 0
+      ? preferredIndex
+      : (styleWeightIndex >= 0 ? styleWeightIndex : 0);
+    faceSelect.disabled = false;
+    faceSelect.value = String(selectedIndex);
+
+    const face = selectedFace();
+    if (preferred.weight === undefined) weightInput.value = String(face.weight);
+    if (preferred.style === undefined) italicInput.checked = face.italic;
+    renderAxisControls(face, preferred.axes || {});
+  }
+
+  function rebuildFamilyOptions(preferredFamily, preferred = {}) {
     familySelect.replaceChildren();
     for (const family of families) {
       const option = createElement(document, 'option');
@@ -261,18 +367,30 @@ export function createFontPicker({
       familySelect.append(option);
       familySelect.value = '';
       familySelect.disabled = true;
+      faceSelect.replaceChildren();
+      faceSelect.disabled = true;
+      renderAxisControls(null);
       return;
     }
 
     familySelect.disabled = false;
     const selected = families.find(family => family.familyName === preferredFamily) || families[0];
     familySelect.value = selected.familyName;
+    rebuildFaceOptions(preferred);
+  }
+
+  function updateInitialAxisWeight() {
+    const face = selectedFace();
+    const weightAxis = face && face.axes.find(axis => axis.tag === 'wght');
+    if (weightAxis && initialValue.weight === undefined) {
+      weightInput.value = String(weightAxis.default);
+    }
   }
 
   function apply(emitChange = true) {
     const value = currentValue();
     const hasFamily = Boolean(value.familyName);
-    for (const control of [sizeInput, weightInput, italicInput, specimenInput]) {
+    for (const control of [faceSelect, sizeInput, weightInput, italicInput, specimenInput]) {
       control.disabled = !hasFamily;
     }
 
@@ -282,6 +400,7 @@ export function createFontPicker({
       preview.style.fontSize = '';
       preview.style.fontWeight = '';
       preview.style.fontStyle = '';
+      preview.style.fontVariationSettings = 'normal';
       return;
     }
 
@@ -289,17 +408,40 @@ export function createFontPicker({
     preview.style.fontSize = (value.fontSizePt * 4 / 3) + 'px';
     preview.style.fontWeight = String(value.weight);
     preview.style.fontStyle = value.style;
+    const variationSettings = Object.entries(value.axes)
+      .map(([tag, amount]) => '"' + tag + '" ' + amount)
+      .join(', ');
+    preview.style.fontVariationSettings = variationSettings || 'normal';
     preview.textContent = value.text;
     if (emitChange && onChange) onChange(value);
   }
 
   function update() {
-    sizeInput.value = String(boundedInteger(sizeInput.value, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
-    weightInput.value = String(boundedInteger(weightInput.value, 1, 1000, 400));
+    const face = selectedFace();
+    const weightAxis = face && face.axes.find(axis => axis.tag === 'wght');
+    const minimumWeight = weightAxis ? Math.ceil(weightAxis.min) : 1;
+    const maximumWeight = weightAxis ? Math.floor(weightAxis.max) : 1000;
+    weightInput.value = String(boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400));
     apply(true);
   }
 
-  familySelect.addEventListener('change', update);
+  function handleFaceChange() {
+    const face = selectedFace();
+    if (face) {
+      weightInput.value = String(face.weight);
+      italicInput.checked = face.italic;
+      renderAxisControls(face);
+    } else {
+      renderAxisControls(null);
+    }
+    update();
+  }
+
+  familySelect.addEventListener('change', () => {
+    rebuildFaceOptions();
+    update();
+  });
+  faceSelect.addEventListener('change', handleFaceChange);
   sizeInput.addEventListener('input', update);
   weightInput.addEventListener('input', update);
   italicInput.addEventListener('change', update);
@@ -308,30 +450,47 @@ export function createFontPicker({
   const initialFamily = typeof initialValue.familyName === 'string'
     ? initialValue.familyName
     : families[0] && families[0].familyName;
-  rebuildFamilyOptions(initialFamily);
   sizeInput.value = String(boundedInteger(initialValue.fontSizePt === undefined ? 12 : initialValue.fontSizePt, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
-  weightInput.value = String(boundedInteger(initialValue.weight === undefined ? 400 : initialValue.weight, 1, 1000, 400));
-  italicInput.checked = initialValue.style === 'italic' || initialValue.italic === true;
   specimenInput.value = typeof initialValue.text === 'string' ? initialValue.text.slice(0, 240) : DEFAULT_SPECIMEN;
+  rebuildFamilyOptions(initialFamily, {
+    faceName: initialValue.faceName,
+    style: initialValue.style,
+    weight: initialValue.weight,
+    axes: initialValue.axes
+  });
+  if (initialValue.weight !== undefined) weightInput.value = String(initialValue.weight);
+  if (initialValue.style !== undefined) italicInput.checked = initialValue.style === 'italic';
+  if (initialValue.italic === true) italicInput.checked = true;
+  updateInitialAxisWeight();
   apply(false);
 
   return {
     element: root,
     getValue: currentValue,
     setCollection(nextCollection) {
-      const previousFamily = familySelect.value;
+      const previous = currentValue();
       families = normalizeFontFamilies(nextCollection);
-      rebuildFamilyOptions(previousFamily);
+      rebuildFamilyOptions(previous.familyName, previous);
       apply(false);
       return currentValue();
     },
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
-      rebuildFamilyOptions(nextValue.familyName === undefined ? familySelect.value : nextValue.familyName);
+      const preferredFamily = nextValue.familyName === undefined ? familySelect.value : nextValue.familyName;
+      const preferredFace = nextValue.faceName === undefined ? currentValue().faceName : nextValue.faceName;
+      const preferredStyle = nextValue.style === undefined ? currentValue().style : nextValue.style;
+      const preferredWeight = nextValue.weight === undefined ? currentValue().weight : nextValue.weight;
+      const preferredAxes = nextValue.axes === undefined ? currentValue().axes : nextValue.axes;
       if (nextValue.fontSizePt !== undefined) sizeInput.value = String(nextValue.fontSizePt);
-      if (nextValue.weight !== undefined) weightInput.value = String(nextValue.weight);
-      if (nextValue.style !== undefined) italicInput.checked = nextValue.style === 'italic';
       if (nextValue.text !== undefined) specimenInput.value = String(nextValue.text).slice(0, 240);
+      rebuildFamilyOptions(preferredFamily, {
+        faceName: preferredFace,
+        style: preferredStyle,
+        weight: preferredWeight,
+        axes: preferredAxes
+      });
+      weightInput.value = String(preferredWeight);
+      italicInput.checked = preferredStyle === 'italic';
       update();
       return currentValue();
     }
