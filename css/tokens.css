@@ -25,4 +25,13 @@
   --bd-ui-shadow: 0 8px 28px rgba(28, 45, 72, .065);
   --bd-ui-shadow-hover: 0 14px 34px rgba(28, 45, 72, .11);
   --bd-ui-focus: var(--bd-ui-accent);
+  --bd-suite-navigation-width: 192px;
+  --bd-product-navigation-expanded-width: 232px;
+  --bd-product-navigation-compact-width: 76px;
+  --bd-navigation-icon-size: 34px;
+  --bd-navigation-toggle-size: 30px;
+  --bd-navigation-motion-duration: 180ms;
+  --bd-navigation-expanded-breakpoint: 1008px;
+  --bd-navigation-compact-breakpoint: 1007px;
+  --bd-navigation-minimal-breakpoint: 640px;
 }
