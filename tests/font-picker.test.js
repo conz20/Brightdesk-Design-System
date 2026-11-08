@@ -350,3 +350,32 @@ test('uses the installed face style when a family has no normal face', () => {
   assert.equal(picker.getValue().faceName, 'Italic Only Italic');
   assert.equal(picker.getValue().style, 'italic');
 });
+
+
+test('applies programmatic variable weight values through the shared axes API', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: systemCollection([
+      {
+        familyName: 'Programmatic Variable',
+        faces: [{
+          faceName: 'Programmatic Variable',
+          style: 'normal',
+          weight: 400,
+          italic: false,
+          oblique: false,
+          axes: [
+            { tag: 'wght', min: 300, default: 400, max: 700 },
+            { tag: 'wdth', min: 75, default: 100, max: 125 }
+          ]
+        }]
+      }
+    ])
+  });
+
+  const value = picker.setValue({ axes: { wght: 625, wdth: 105 } });
+
+  assert.equal(value.weight, 625);
+  assert.deepEqual(value.axes, { wght: 625, wdth: 105 });
+  assert.equal(picker.element.queryByControl('weight').value, '625');
+});
