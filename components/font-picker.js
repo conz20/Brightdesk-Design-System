@@ -459,7 +459,11 @@ export function createFontPicker({
     weight: initialValue.weight === undefined ? 400 : initialValue.weight,
     axes: initialValue.axes
   });
-  if (initialValue.weight !== undefined) weightInput.value = String(initialValue.weight);
+  if (initialValue.weight !== undefined) {
+    weightInput.value = String(initialValue.weight);
+  } else if (isRecord(initialValue.axes) && initialValue.axes.wght !== undefined) {
+    weightInput.value = String(initialValue.axes.wght);
+  }
   if (initialValue.style !== undefined) {
     italicInput.checked = initialValue.style === 'italic';
   } else if (initialValue.italic !== undefined) {
@@ -467,7 +471,7 @@ export function createFontPicker({
   } else {
     italicInput.checked = Boolean(selectedFace() && selectedFace().italic);
   }
-  updateInitialAxisWeight();
+  if (initialValue.weight === undefined && !(isRecord(initialValue.axes) && initialValue.axes.wght !== undefined)) updateInitialAxisWeight();
   apply(false);
 
   return {
@@ -482,11 +486,14 @@ export function createFontPicker({
     },
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
+      const previous = currentValue();
       const preferredFamily = nextValue.familyName === undefined ? familySelect.value : nextValue.familyName;
-      const preferredFace = nextValue.faceName === undefined ? currentValue().faceName : nextValue.faceName;
-      const preferredStyle = nextValue.style === undefined ? currentValue().style : nextValue.style;
-      const preferredWeight = nextValue.weight === undefined ? currentValue().weight : nextValue.weight;
-      const preferredAxes = nextValue.axes === undefined ? currentValue().axes : nextValue.axes;
+      const preferredFace = nextValue.faceName === undefined ? previous.faceName : nextValue.faceName;
+      const preferredStyle = nextValue.style === undefined ? previous.style : nextValue.style;
+      const preferredAxes = nextValue.axes === undefined ? previous.axes : nextValue.axes;
+      const preferredWeight = nextValue.weight === undefined
+        ? (isRecord(preferredAxes) && preferredAxes.wght !== undefined ? preferredAxes.wght : previous.weight)
+        : nextValue.weight;
       if (nextValue.fontSizePt !== undefined) sizeInput.value = String(nextValue.fontSizePt);
       if (nextValue.text !== undefined) specimenInput.value = String(nextValue.text).slice(0, 240);
       rebuildFamilyOptions(preferredFamily, {
