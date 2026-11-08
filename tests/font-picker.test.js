@@ -379,3 +379,35 @@ test('applies programmatic variable weight values through the shared axes API', 
   assert.deepEqual(value.axes, { wght: 625, wdth: 105 });
   assert.equal(picker.element.queryByControl('weight').value, '625');
 });
+
+
+test('preserves fractional values across the variable font weight axis', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: systemCollection([{
+      familyName: 'Fractional Weight',
+      faces: [{
+        faceName: 'Fractional Weight Variable',
+        style: 'normal',
+        weight: 425,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 325.5, default: 425.25, max: 675.5 }]
+      }]
+    }])
+  });
+
+  const weight = picker.element.queryByControl('weight');
+  assert.equal(weight.min, '325.5');
+  assert.equal(weight.max, '675.5');
+  assert.equal(weight.step, 'any');
+  assert.equal(weight.value, '425.25');
+  assert.equal(picker.getValue().weight, 425.25);
+  assert.equal(picker.getValue().axes.wght, 425.25);
+
+  weight.value = '512.5';
+  weight.dispatch('input');
+  assert.equal(picker.getValue().weight, 512.5);
+  assert.equal(picker.getValue().axes.wght, 512.5);
+  assert.equal(picker.element.queryByControl('preview').style.fontWeight, '512.5');
+});
