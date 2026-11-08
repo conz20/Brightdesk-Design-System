@@ -5,6 +5,9 @@
   --bd-navigation-icon-size: 34px;
   --bd-navigation-toggle-size: 30px;
   --bd-navigation-motion-duration: 180ms;
+  --bd-navigation-expanded-breakpoint: 1008px;
+  --bd-navigation-compact-breakpoint: 1007px;
+  --bd-navigation-minimal-breakpoint: 640px;
   --bd-navigation-border: #e1e7ef;
   --bd-navigation-focus: #315fce;
 }
