@@ -57,3 +57,20 @@ Brightdesk uses original product names, icons, colour relationships, layouts and
 ## Current status
 
 The canonical tokens and product-window shell are now defined in this repository. Consumer integration is reviewed in the individual product repositories; this repository alone does not prove that all ten products have adopted the system.
+
+
+## Typography controls
+
+The feature branch `feature/font-picker-system-discovery-2026-11-09` adds the first shared local font-picker component:
+
+- `components/font-picker.js` provides a framework-neutral, accessible font-family, size, weight, italic and live-specimen control.
+- `css/font-picker.css` provides responsive styling using the canonical design tokens.
+- The picker consumes normalized local system-font metadata from Brightdesk-Type-Preview. It does not enumerate fonts itself, read or install files, make network requests, or bundle font binaries.
+- Duplicate family records are coalesced without dropping distinct faces; exact Microsoft family names are retained when locally installed.
+- An empty system-font collection produces an explicit empty state rather than silently substituting a family.
+- `docs/TYPOGRAPHY_CONTROLS.md` documents the integration API and privacy/accessibility boundary.
+- `tests/font-picker.test.js` defines dependency-free Node test coverage.
+
+Load `css/tokens.css` before `css/font-picker.css`, and call `createFontPicker({ document, collection, onChange })` with the normalized collection returned by Type Preview. Product integration is not yet complete. Pages ribbon wiring, real Electron rendering, assistive-technology checks, complex-script shaping, and native verification on Windows/macOS/Linux remain separate gates.
+
+The feature branch has received focused behavioural checks in the authoring environment. The repository's required Node.js 24.22.2 `npm run verify` command has not yet been run; do not treat the branch as test-gated or production-ready until that exact runtime check passes.
