@@ -233,8 +233,8 @@ test('lets the user choose an installed face and adjust its variable font axes',
 
   assert.equal(preview.style.fontVariationSettings, '"wdth" 110, "opsz" 18');
   assert.equal(picker.getValue().faceName, 'Segoe UI Variable Text');
-  assert.deepEqual(picker.getValue().axes, { wdth: 110, opsz: 18 });
-  assert.deepEqual(changes.at(-1).axes, { wdth: 110, opsz: 18 });
+  assert.deepEqual(picker.getValue().axes, { wght: 400, wdth: 110, opsz: 18 });
+  assert.deepEqual(changes.at(-1).axes, { wght: 400, wdth: 110, opsz: 18 });
 });
 
 test('updates the selected face defaults and removes axes unavailable on the new face', () => {
