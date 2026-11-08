@@ -282,3 +282,48 @@ test('updates the selected face defaults and removes axes unavailable on the new
   assert.equal(picker.element.queryByControl('axis-wdth'), null);
   assert.equal(picker.element.queryByControl('preview').style.fontVariationSettings, 'normal');
 });
+
+
+test('keeps the selected face and clamps its axes when local font metadata refreshes', () => {
+  const initialCollection = systemCollection([
+    {
+      familyName: 'Refresh Variable',
+      faces: [{
+        faceName: 'Refresh Variable Text',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wdth', min: 75, default: 100, max: 125 }]
+      }]
+    }
+  ]);
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: initialCollection,
+    initialValue: {
+      familyName: 'Refresh Variable',
+      faceName: 'Refresh Variable Text',
+      axes: { wdth: 120 }
+    }
+  });
+
+  const refreshedCollection = systemCollection([
+    {
+      familyName: 'Refresh Variable',
+      faces: [{
+        faceName: 'Refresh Variable Text',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wdth', min: 80, default: 100, max: 110 }]
+      }]
+    }
+  ]);
+  const value = picker.setCollection(refreshedCollection);
+
+  assert.equal(value.faceName, 'Refresh Variable Text');
+  assert.deepEqual(value.axes, { wdth: 110 });
+  assert.equal(picker.element.queryByControl('axis-wdth').value, '110');
+});
