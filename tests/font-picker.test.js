@@ -27,6 +27,10 @@ class FakeElement {
     this.children.push(...children);
   }
 
+  replaceChildren(...children) {
+    this.children = [...children];
+  }
+
   setAttribute(name, value) {
     this.attributes[name] = String(value);
   }
