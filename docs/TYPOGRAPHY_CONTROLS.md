@@ -29,7 +29,7 @@ const picker = createFontPicker({
   collection: systemFonts,
   initialValue: {
     familyName: 'Aptos',
-    sizePx: 12,
+    fontSizePt: 12,
     weight: 400,
     style: 'normal',
     text: 'The quick brown fox jumps over the lazy dog.'
@@ -46,8 +46,8 @@ container.append(picker.element);
 The consumer obtains `platformAdapter` and `discoverSystemFonts` from Brightdesk-Type-Preview. The picker is not responsible for selecting or launching native helpers.
 
 `createFontPicker()` returns:
-- `element`: accessible DOM section containing font family, size, weight, italic and specimen controls;
-- `getValue()`: current `{ familyName, sizePx, weight, style, text }` selection;
+- `element`: accessible DOM section containing font family, point size, weight, italic and specimen controls;
+- `getValue()`: current `{ familyName, fontSizePt, weight, style, text }` selection;
 - `setValue(value)`: update the selected control values and emit `onChange`;
 - `setCollection(collection)`: replace the local installed-font list while retaining the chosen family where possible.
 
