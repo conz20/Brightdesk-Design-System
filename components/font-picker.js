@@ -19,13 +19,17 @@ function requireText(value, label) {
 }
 
 function faceKey(face) {
-  return [
+  return JSON.stringify([
     face.faceName,
+    face.postScriptName || '',
     face.style,
     face.weight,
     face.italic,
-    face.oblique
-  ].join('\u0000');
+    face.oblique,
+    face.axes || [],
+    face.scripts || [],
+    face.languages || []
+  ]);
 }
 
 /**
@@ -221,7 +225,7 @@ export function createFontPicker({
 
   controls.append(
     createLabel(document, 'Font family', familySelect, 'bd-font-picker__field bd-font-picker__field--family'),
-    createLabel(document, 'Font size', sizeInput, 'bd-font-picker__field'),
+    createLabel(document, 'Font size (points)', sizeInput, 'bd-font-picker__field'),
     createLabel(document, 'Font weight', weightInput, 'bd-font-picker__field'),
     createLabel(document, 'Italic', italicInput, 'bd-font-picker__field bd-font-picker__field--checkbox')
   );
@@ -234,7 +238,7 @@ export function createFontPicker({
   function currentValue() {
     return {
       familyName: familySelect.value,
-      sizePx: boundedInteger(sizeInput.value, MIN_FONT_SIZE, MAX_FONT_SIZE, 12),
+      fontSizePt: boundedInteger(sizeInput.value, MIN_FONT_SIZE, MAX_FONT_SIZE, 12),
       weight: boundedInteger(weightInput.value, 1, 1000, 400),
       style: italicInput.checked ? 'italic' : 'normal',
       text: specimenInput.value
@@ -282,7 +286,7 @@ export function createFontPicker({
     }
 
     preview.style.fontFamily = escapeFontFamily(value.familyName);
-    preview.style.fontSize = value.sizePx + 'px';
+    preview.style.fontSize = (value.fontSizePt * 4 / 3) + 'px';
     preview.style.fontWeight = String(value.weight);
     preview.style.fontStyle = value.style;
     preview.textContent = value.text;
@@ -305,7 +309,7 @@ export function createFontPicker({
     ? initialValue.familyName
     : families[0] && families[0].familyName;
   rebuildFamilyOptions(initialFamily);
-  sizeInput.value = String(boundedInteger(initialValue.sizePx === undefined ? 12 : initialValue.sizePx, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
+  sizeInput.value = String(boundedInteger(initialValue.fontSizePt === undefined ? 12 : initialValue.fontSizePt, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
   weightInput.value = String(boundedInteger(initialValue.weight === undefined ? 400 : initialValue.weight, 1, 1000, 400));
   italicInput.checked = initialValue.style === 'italic' || initialValue.italic === true;
   specimenInput.value = typeof initialValue.text === 'string' ? initialValue.text.slice(0, 240) : DEFAULT_SPECIMEN;
@@ -324,7 +328,7 @@ export function createFontPicker({
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
       rebuildFamilyOptions(nextValue.familyName === undefined ? familySelect.value : nextValue.familyName);
-      if (nextValue.sizePx !== undefined) sizeInput.value = String(nextValue.sizePx);
+      if (nextValue.fontSizePt !== undefined) sizeInput.value = String(nextValue.fontSizePt);
       if (nextValue.weight !== undefined) weightInput.value = String(nextValue.weight);
       if (nextValue.style !== undefined) italicInput.checked = nextValue.style === 'italic';
       if (nextValue.text !== undefined) specimenInput.value = String(nextValue.text).slice(0, 240);
