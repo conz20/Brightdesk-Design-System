@@ -51,6 +51,46 @@
   width: 88px;
 }
 
+
+.bd-font-picker__field--face {
+  flex: 1 1 190px;
+}
+
+.bd-font-picker__field--face select {
+  width: 100%;
+}
+
+.bd-font-picker__axes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bd-ui-space-3, 12px);
+}
+
+.bd-font-picker__axes[hidden] {
+  display: none;
+}
+
+.bd-font-picker__axis-field {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 6px;
+  min-width: 150px;
+  color: var(--bd-ui-muted, #718097);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bd-font-picker__axis {
+  width: 100%;
+  accent-color: var(--bd-ui-accent, #315fce);
+}
+
+.bd-font-picker__axis:focus-visible {
+  outline: 2px solid var(--bd-ui-focus, #315fce);
+  outline-offset: 3px;
+}
+
 .bd-font-picker__field--checkbox {
   display: flex;
   min-height: 38px;
