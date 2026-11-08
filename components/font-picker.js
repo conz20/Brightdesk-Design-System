@@ -460,8 +460,13 @@ export function createFontPicker({
     axes: initialValue.axes
   });
   if (initialValue.weight !== undefined) weightInput.value = String(initialValue.weight);
-  if (initialValue.style !== undefined) italicInput.checked = initialValue.style === 'italic';
-  if (initialValue.italic === true) italicInput.checked = true;
+  if (initialValue.style !== undefined) {
+    italicInput.checked = initialValue.style === 'italic';
+  } else if (initialValue.italic !== undefined) {
+    italicInput.checked = initialValue.italic === true;
+  } else {
+    italicInput.checked = Boolean(selectedFace() && selectedFace().italic);
+  }
   updateInitialAxisWeight();
   apply(false);
 
