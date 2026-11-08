@@ -63,7 +63,7 @@ The canonical tokens and product-window shell are now defined in this repository
 
 The feature branch `feature/font-picker-system-discovery-2026-11-09` adds the first shared local font-picker component:
 
-- `components/font-picker.js` provides a framework-neutral, accessible font-family, size, weight, italic and live-specimen control.
+- `components/font-picker.js` provides a framework-neutral, accessible font-family, point size, weight, italic and live-specimen control.
 - `css/font-picker.css` provides responsive styling using the canonical design tokens.
 - The picker consumes normalized local system-font metadata from Brightdesk-Type-Preview. It does not enumerate fonts itself, read or install files, make network requests, or bundle font binaries.
 - Duplicate family records are coalesced without dropping distinct faces; exact Microsoft family names are retained when locally installed.
