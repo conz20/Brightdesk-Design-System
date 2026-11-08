@@ -158,9 +158,11 @@ test('creates labelled controls and updates the local preview when a setting cha
   assert.equal(preview.textContent, 'Brightdesk local preview');
   assert.deepEqual(changes.at(-1), {
     familyName: 'Aptos',
+    faceName: 'Aptos',
     fontSizePt: 18,
     weight: 650,
     style: 'italic',
+    axes: {},
     text: 'Brightdesk local preview'
   });
 });
@@ -270,7 +272,7 @@ test('updates the selected face defaults and removes axes unavailable on the new
   });
 
   const face = picker.element.queryByControl('face');
-  face.value = '1';
+  face.value = String(face.children.findIndex(option => option.textContent === 'Example Variable Semibold Italic'));
   face.dispatch('change');
 
   assert.equal(picker.getValue().faceName, 'Example Variable Semibold Italic');
