@@ -4,7 +4,7 @@ const MAX_FONT_SIZE = 96;
 const DEFAULT_SPECIMEN = 'The quick brown fox jumps over the lazy dog.';
 
 function fail(message) {
-  throw new TypeError(\`Brightdesk Design System: \${message}\`);
+  throw new TypeError('Brightdesk Design System: ' + message);
 }
 
 function isRecord(value) {
@@ -13,7 +13,7 @@ function isRecord(value) {
 
 function requireText(value, label) {
   if (typeof value !== 'string' || value.trim().length === 0) {
-    fail(\`\${label} must be a non-empty string.\`);
+    fail(label + ' must be a non-empty string.');
   }
   return value.trim();
 }
@@ -41,10 +41,10 @@ export function normalizeFontFamilies(collection) {
 
   const byName = new Map();
   for (const [familyIndex, family] of collection.families.entries()) {
-    if (!isRecord(family)) fail(\`families[\${familyIndex}] must be an object.\`);
-    const familyName = requireText(family.familyName, \`families[\${familyIndex}].familyName\`);
+    if (!isRecord(family)) fail('families[' + familyIndex + '] must be an object.');
+    const familyName = requireText(family.familyName, 'families[' + familyIndex + '].familyName');
     if (!Array.isArray(family.faces) || family.faces.length === 0) {
-      fail(\`families[\${familyIndex}].faces must contain at least one installed face.\`);
+      fail('families[' + familyIndex + '].faces must contain at least one installed face.');
     }
 
     const key = familyName.toLocaleLowerCase('en-US');
@@ -55,9 +55,9 @@ export function normalizeFontFamilies(collection) {
     }
 
     for (const [faceIndex, face] of family.faces.entries()) {
-      const label = \`families[\${familyIndex}].faces[\${faceIndex}]\`;
-      if (!isRecord(face)) fail(\`\${label} must be an object.\`);
-      const faceName = requireText(face.faceName, \`\${label}.faceName\`);
+      const label = 'families[' + familyIndex + '].faces[' + faceIndex + ']';
+      if (!isRecord(face)) fail(label + ' must be an object.');
+      const faceName = requireText(face.faceName, label + '.faceName');
       if (
         !VALID_STYLES.has(face.style) ||
         !Number.isInteger(face.weight) ||
@@ -66,17 +66,18 @@ export function normalizeFontFamilies(collection) {
         typeof face.italic !== 'boolean' ||
         typeof face.oblique !== 'boolean'
       ) {
-        fail(\`\${label} has invalid style or weight metadata.\`);
+        fail(label + ' has invalid style or weight metadata.');
       }
       if (
         (face.style === 'normal' && (face.italic || face.oblique)) ||
         (face.style === 'italic' && (!face.italic || face.oblique)) ||
         (face.style === 'oblique' && (face.italic || !face.oblique))
       ) {
-        fail(\`\${label} has contradictory style flags.\`);
+        fail(label + ' has contradictory style flags.');
       }
-      const axes = face.axes ?? [];
-      if (!Array.isArray(axes)) fail(\`\${label}.axes must be an array.\`);
+
+      const axes = face.axes === undefined ? [] : face.axes;
+      if (!Array.isArray(axes)) fail(label + '.axes must be an array.');
       const normalizedFace = {
         faceName,
         style: face.style,
@@ -92,14 +93,27 @@ export function normalizeFontFamilies(collection) {
             axis.min > axis.default ||
             axis.default > axis.max
           ) {
-            fail(\`\${label}.axes contains invalid OpenType axis metadata.\`);
+            fail(label + '.axes contains invalid OpenType axis metadata.');
           }
           return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
-        }),
-        ...(face.postScriptName === undefined ? {} : { postScriptName: requireText(face.postScriptName, \`\${label}.postScriptName\`) }),
-        ...(face.scripts === undefined ? {} : { scripts: [...face.scripts] }),
-        ...(face.languages === undefined ? {} : { languages: [...face.languages] })
+        })
       };
+      if (face.postScriptName !== undefined) {
+        normalizedFace.postScriptName = requireText(face.postScriptName, label + '.postScriptName');
+      }
+      if (face.scripts !== undefined) {
+        if (!Array.isArray(face.scripts) || face.scripts.some(value => typeof value !== 'string')) {
+          fail(label + '.scripts must be an array of strings.');
+        }
+        normalizedFace.scripts = [...face.scripts];
+      }
+      if (face.languages !== undefined) {
+        if (!Array.isArray(face.languages) || face.languages.some(value => typeof value !== 'string')) {
+          fail(label + '.languages must be an array of strings.');
+        }
+        normalizedFace.languages = [...face.languages];
+      }
+
       const signature = faceKey(normalizedFace);
       if (!normalized._faceKeys.has(signature)) {
         normalized._faceKeys.add(signature);
@@ -121,12 +135,12 @@ export function escapeFontFamily(familyName) {
   requireText(familyName, 'familyName');
   const escaped = [...familyName.trim()].map(character => {
     const code = character.codePointAt(0);
-    if (character === '"' || character === '\\') return \`\\\\\${character}\`;
-    if (code === 0) return '\\\\fffd ';
-    if (code < 0x20 || code === 0x7f) return \`\\\\\${code.toString(16)} \`;
+    if (character === '"' || character === '\\') return '\\' + character;
+    if (code === 0) return '\\fffd ';
+    if (code < 0x20 || code === 0x7f) return '\\' + code.toString(16) + ' ';
     return character;
   }).join('');
-  return \`"\${escaped}", sans-serif\`;
+  return '"' + escaped + '", sans-serif';
 }
 
 function createElement(document, tagName, className, controlName) {
@@ -172,7 +186,9 @@ export function createFontPicker({
   }
   if (!isRecord(initialValue)) fail('initialValue must be an object.');
 
-  let families = normalizeFontFamilies(collection ?? { source: 'system', families: [] });
+  let families = normalizeFontFamilies(collection === undefined
+    ? { source: 'system', families: [] }
+    : collection);
 
   const root = createElement(document, 'section', 'bd-font-picker');
   root.setAttribute('aria-label', 'Typography controls');
@@ -203,22 +219,21 @@ export function createFontPicker({
   preview.setAttribute('aria-label', 'Font preview');
   preview.setAttribute('aria-live', 'polite');
 
-  const familyLabel = createLabel(document, 'Font family', familySelect, 'bd-font-picker__field bd-font-picker__field--family');
-  const sizeLabel = createLabel(document, 'Font size', sizeInput, 'bd-font-picker__field');
-  const weightLabel = createLabel(document, 'Font weight', weightInput, 'bd-font-picker__field');
-  const italicLabel = createLabel(document, 'Italic', italicInput, 'bd-font-picker__field bd-font-picker__field--checkbox');
-  const specimenLabel = createLabel(document, 'Preview text', specimenInput, 'bd-font-picker__specimen-field');
-
-  controls.append(familyLabel, sizeLabel, weightLabel, italicLabel);
-  root.append(controls, specimenLabel, preview);
-
-  function selectedFamilyName() {
-    return familySelect.value;
-  }
+  controls.append(
+    createLabel(document, 'Font family', familySelect, 'bd-font-picker__field bd-font-picker__field--family'),
+    createLabel(document, 'Font size', sizeInput, 'bd-font-picker__field'),
+    createLabel(document, 'Font weight', weightInput, 'bd-font-picker__field'),
+    createLabel(document, 'Italic', italicInput, 'bd-font-picker__field bd-font-picker__field--checkbox')
+  );
+  root.append(
+    controls,
+    createLabel(document, 'Preview text', specimenInput, 'bd-font-picker__specimen-field'),
+    preview
+  );
 
   function currentValue() {
     return {
-      familyName: selectedFamilyName(),
+      familyName: familySelect.value,
       sizePx: boundedInteger(sizeInput.value, MIN_FONT_SIZE, MAX_FONT_SIZE, 12),
       weight: boundedInteger(weightInput.value, 1, 1000, 400),
       style: italicInput.checked ? 'italic' : 'normal',
@@ -227,13 +242,14 @@ export function createFontPicker({
   }
 
   function rebuildFamilyOptions(preferredFamily) {
-    while (familySelect.children.length) familySelect.children.pop();
+    familySelect.replaceChildren();
     for (const family of families) {
       const option = createElement(document, 'option');
       option.value = family.familyName;
       option.textContent = family.familyName;
       familySelect.append(option);
     }
+
     if (families.length === 0) {
       const option = createElement(document, 'option');
       option.value = '';
@@ -243,8 +259,9 @@ export function createFontPicker({
       familySelect.disabled = true;
       return;
     }
+
     familySelect.disabled = false;
-    const selected = families.find(family => family.familyName === preferredFamily) ?? families[0];
+    const selected = families.find(family => family.familyName === preferredFamily) || families[0];
     familySelect.value = selected.familyName;
   }
 
@@ -254,6 +271,7 @@ export function createFontPicker({
     for (const control of [sizeInput, weightInput, italicInput, specimenInput]) {
       control.disabled = !hasFamily;
     }
+
     if (!hasFamily) {
       preview.textContent = 'No installed fonts were found.';
       preview.style.fontFamily = '';
@@ -264,7 +282,7 @@ export function createFontPicker({
     }
 
     preview.style.fontFamily = escapeFontFamily(value.familyName);
-    preview.style.fontSize = \`\${value.sizePx}px\`;
+    preview.style.fontSize = value.sizePx + 'px';
     preview.style.fontWeight = String(value.weight);
     preview.style.fontStyle = value.style;
     preview.textContent = value.text;
@@ -283,10 +301,12 @@ export function createFontPicker({
   italicInput.addEventListener('change', update);
   specimenInput.addEventListener('input', update);
 
-  const initialFamily = typeof initialValue.familyName === 'string' ? initialValue.familyName : families[0]?.familyName;
+  const initialFamily = typeof initialValue.familyName === 'string'
+    ? initialValue.familyName
+    : families[0] && families[0].familyName;
   rebuildFamilyOptions(initialFamily);
-  sizeInput.value = String(boundedInteger(initialValue.sizePx ?? 12, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
-  weightInput.value = String(boundedInteger(initialValue.weight ?? 400, 1, 1000, 400));
+  sizeInput.value = String(boundedInteger(initialValue.sizePx === undefined ? 12 : initialValue.sizePx, MIN_FONT_SIZE, MAX_FONT_SIZE, 12));
+  weightInput.value = String(boundedInteger(initialValue.weight === undefined ? 400 : initialValue.weight, 1, 1000, 400));
   italicInput.checked = initialValue.style === 'italic' || initialValue.italic === true;
   specimenInput.value = typeof initialValue.text === 'string' ? initialValue.text.slice(0, 240) : DEFAULT_SPECIMEN;
   apply(false);
@@ -295,7 +315,7 @@ export function createFontPicker({
     element: root,
     getValue: currentValue,
     setCollection(nextCollection) {
-      const previousFamily = selectedFamilyName();
+      const previousFamily = familySelect.value;
       families = normalizeFontFamilies(nextCollection);
       rebuildFamilyOptions(previousFamily);
       apply(false);
@@ -303,7 +323,7 @@ export function createFontPicker({
     },
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
-      rebuildFamilyOptions(nextValue.familyName ?? selectedFamilyName());
+      rebuildFamilyOptions(nextValue.familyName === undefined ? familySelect.value : nextValue.familyName);
       if (nextValue.sizePx !== undefined) sizeInput.value = String(nextValue.sizePx);
       if (nextValue.weight !== undefined) weightInput.value = String(nextValue.weight);
       if (nextValue.style !== undefined) italicInput.checked = nextValue.style === 'italic';
