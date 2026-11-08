@@ -1,0 +1,94 @@
+/* Shared local typography picker used by document-editing workspaces. */
+.bd-typography-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bd-ui-space-2, 8px);
+  min-width: 0;
+  padding: 7px 10px;
+  color: var(--bd-ui-ink, #1c2940);
+  background: var(--bd-ui-surface-muted, #f8f9fc);
+  border: 1px solid var(--bd-ui-line, #e1e7ef);
+  border-radius: var(--bd-ui-radius-sm, 7px);
+}
+
+.bd-typography-picker__field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: var(--bd-ui-text, #40516a);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.bd-typography-picker__select {
+  min-width: 0;
+  height: 32px;
+  padding: 0 27px 0 9px;
+  color: var(--bd-ui-ink, #1c2940);
+  background: var(--bd-ui-surface, #fff);
+  border: 1px solid var(--bd-ui-line-strong, #d3dce8);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bd-typography-picker__select:focus-visible {
+  outline: 2px solid var(--bd-ui-focus, var(--bd-ui-accent, #315fce));
+  outline-offset: 2px;
+}
+
+.bd-typography-picker__field:first-child .bd-typography-picker__select {
+  width: 184px;
+}
+
+.bd-typography-picker__size {
+  width: 68px;
+}
+
+.bd-typography-picker__preview {
+  display: inline-flex;
+  align-items: center;
+  min-width: 110px;
+  max-width: min(32vw, 310px);
+  min-height: 30px;
+  padding: 2px 10px;
+  overflow: hidden;
+  color: var(--bd-ui-ink, #1c2940);
+  background: var(--bd-ui-surface, #fff);
+  border: 1px solid var(--bd-ui-line, #e1e7ef);
+  border-radius: 6px;
+  font-size: 11pt;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bd-typography-picker__select:disabled {
+  color: var(--bd-ui-muted, #718097);
+  background: var(--bd-ui-surface-muted, #f8f9fc);
+}
+
+@media (max-width: 760px) {
+  .bd-typography-picker {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .bd-typography-picker__field:first-child {
+    flex: 1 1 180px;
+  }
+
+  .bd-typography-picker__field:first-child .bd-typography-picker__select {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .bd-typography-picker__preview {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}
