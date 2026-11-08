@@ -163,10 +163,14 @@ function createLabel(document, labelText, control, className) {
   return label;
 }
 
-function boundedInteger(rawValue, minimum, maximum, fallback) {
+function boundedNumber(rawValue, minimum, maximum, fallback) {
   const number = Number(rawValue);
   if (!Number.isFinite(number)) return fallback;
-  return Math.min(maximum, Math.max(minimum, Math.round(number)));
+  return Math.min(maximum, Math.max(minimum, number));
+}
+
+function boundedInteger(rawValue, minimum, maximum, fallback) {
+  return Math.round(boundedNumber(rawValue, minimum, maximum, fallback));
 }
 
 /**
@@ -254,9 +258,11 @@ export function createFontPicker({
   function currentValue() {
     const face = selectedFace();
     const weightAxis = face && face.axes.find(axis => axis.tag === 'wght');
-    const minimumWeight = weightAxis ? Math.ceil(weightAxis.min) : 1;
-    const maximumWeight = weightAxis ? Math.floor(weightAxis.max) : 1000;
-    const weight = boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400);
+    const minimumWeight = weightAxis ? weightAxis.min : 1;
+    const maximumWeight = weightAxis ? weightAxis.max : 1000;
+    const weight = weightAxis
+      ? boundedNumber(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : weightAxis.default)
+      : boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400);
     const axes = {};
     if (weightAxis) axes.wght = weight;
     for (const [tag, input] of axisInputs) axes[tag] = Number(input.value);
@@ -288,9 +294,9 @@ export function createFontPicker({
     axisInputs = new Map();
     const axes = face ? face.axes : [];
     const weightAxis = axes.find(axis => axis.tag === 'wght');
-    weightInput.min = String(weightAxis ? Math.ceil(weightAxis.min) : 1);
-    weightInput.max = String(weightAxis ? Math.floor(weightAxis.max) : 1000);
-    weightInput.step = '1';
+    weightInput.min = String(weightAxis ? weightAxis.min : 1);
+    weightInput.max = String(weightAxis ? weightAxis.max : 1000);
+    weightInput.step = weightAxis ? 'any' : '1';
 
     for (const axis of axes) {
       if (axis.tag === 'wght') continue;
@@ -420,9 +426,11 @@ export function createFontPicker({
   function update() {
     const face = selectedFace();
     const weightAxis = face && face.axes.find(axis => axis.tag === 'wght');
-    const minimumWeight = weightAxis ? Math.ceil(weightAxis.min) : 1;
-    const maximumWeight = weightAxis ? Math.floor(weightAxis.max) : 1000;
-    weightInput.value = String(boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400));
+    const minimumWeight = weightAxis ? weightAxis.min : 1;
+    const maximumWeight = weightAxis ? weightAxis.max : 1000;
+    weightInput.value = String(weightAxis
+      ? boundedNumber(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : weightAxis.default)
+      : boundedInteger(weightInput.value, minimumWeight, maximumWeight, face ? face.weight : 400));
     apply(true);
   }
 
