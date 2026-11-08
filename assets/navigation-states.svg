@@ -75,5 +75,7 @@
  <text x="124" y="258" font-family="Arial,sans-serif" font-size="12" fill="#65758d">technology and tooltips.</text>
  <text x="124" y="294" font-family="Arial,sans-serif" font-size="12" fill="#65758d">User can expand it</text>
  <text x="124" y="312" font-family="Arial,sans-serif" font-size="12" fill="#65758d">again when needed.</text>
+ <text x="124" y="348" font-family="Arial,sans-serif" font-size="12" fill="#65758d">At 640 px and below, it becomes a</text>
+ <text x="124" y="366" font-family="Arial,sans-serif" font-size="12" fill="#65758d">menu button that opens over content.</text>
 </g>
 </svg>
