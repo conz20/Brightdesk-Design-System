@@ -57,3 +57,18 @@ Brightdesk uses original product names, icons, colour relationships, layouts and
 ## Current status
 
 The canonical tokens and product-window shell are now defined in this repository. Consumer integration is reviewed in the individual product repositories; this repository alone does not prove that all ten products have adopted the system.
+
+## Typography controls
+
+The shared local typography picker is implemented in `components/font-picker.js` and `css/font-picker.css`:
+
+- It consumes normalized, locally discovered system-font metadata from Brightdesk-Type-Preview. It does not enumerate fonts itself, read or install files, make network requests, or bundle font binaries.
+- It preserves exact operating-system family and face names, and coalesces repeated family records without discarding distinct installed faces.
+- It exposes the installed faces for the selected family and creates accessible range controls for declared variable-font axes. The weight axis is represented by the weight input and included in the returned axis settings.
+- It provides point size, weight, italic, editable specimen text and a live local preview.
+- An empty system-font collection produces an explicit empty state rather than silently substituting a family.
+- `docs/TYPOGRAPHY_CONTROLS.md` documents the integration API and privacy/accessibility boundary; `tests/font-picker.test.js` covers the component without third-party dependencies.
+
+Load `css/tokens.css` before `css/font-picker.css`, and call `createFontPicker({ document, collection, onChange })` with the normalized collection returned by Type Preview. Product integration is not yet complete. Pages ribbon wiring, real Electron rendering, assistive-technology checks, complex-script shaping, and native verification on Windows/macOS/Linux remain separate gates.
+
+The base shared picker is in `feature/font-picker-system-discovery-2026-11-09`. Installed-face and variable-axis controls are developed in `feature/font-picker-face-and-axis-controls-2026-11-09`. Focused behavioural checks passed in the authoring environment; the new branch still requires the repository's Node.js 24.22.2 `npm run verify` check before it is test-gated.
