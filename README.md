@@ -16,8 +16,8 @@ Each individual product edition receives its product identity from its existing 
 - replaces Suite product-management navigation with the product's own labelled navigation rail and removes the generic welcome banner;
 - keeps the product name, product icon, local-save state and relevant file actions visible;
 - gives the product workspace the remaining window area;
-- adapts navigation between a 232 px expanded rail (1008 px and wider), a 76 px compact icon rail (641–1007 px), and a menu button at 640 px and below that opens the navigation over the workspace;
-- uses a Brightdesk-specific 76 px icon rail at medium widths; Fluent 2's standard Nav guidance uses a labelled drawer and an overlay drawer at 640 px and below, and does not define an icon-only Nav layout;
+- adapts navigation between a 232 px expanded rail (1008 px and wider) and a 76 px compact icon rail (641–1007 px) within desktop product windows;
+- supports Windows, macOS and Linux desktop windows only; no mobile application, mobile edition, mobile build target or mobile navigation mode is part of Brightdesk;
 - keeps domain-specific navigation inside the product workspace where that feature exists.
 
 The Suite itself does not receive the product-window class. Its Home, Apps, Files and product-switching experience therefore remains separate.
