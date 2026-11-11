@@ -13,9 +13,8 @@ test('compact product navigation keeps labels available to assistive technology'
   assert.doesNotMatch(match[1], /display:\s*none/i);
 });
 
-test('mobile navigation scrim is scoped to individual product windows', () => {
-  assert.match(css, /html\.is-product-window\s+body\.sidebar-mobile-open::before\s*\{/);
-  assert.doesNotMatch(css, /(^|\n)body\.sidebar-mobile-open::before\s*\{/);
+test('desktop product shell contains no mobile navigation or overlay implementation', () => {
+  assert.doesNotMatch(css, /is-open-mobile|is-minimal|sidebar-mobile-open|max-width:\s*640px/);
 });
 
 test('product shell respects reduced-motion preferences', () => {
