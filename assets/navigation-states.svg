@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="600" viewBox="0 0 1440 600" role="img" aria-labelledby="title desc">
+<title id="title">Brightdesk navigation states</title>
+<desc id="desc">Original Brightdesk navigation reference showing the fixed compact labelled Suite rail, an expanded product navigation rail, a compact icon-only product rail with tooltips and accessible names, and a menu-button-only state for narrow windows.</desc>
+<defs>
+ <linearGradient id="navy" x2="0" y2="1"><stop stop-color="#14233f"/><stop offset="1" stop-color="#0d1930"/></linearGradient>
+ <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1c2d4b" flood-opacity=".10"/></filter>
+</defs>
+<rect width="1440" height="600" fill="#f3f5f9"/>
+<text x="54" y="58" font-family="Arial,sans-serif" font-size="26" font-weight="700" fill="#1d2b42">Brightdesk navigation</text>
+<text x="54" y="88" font-family="Arial,sans-serif" font-size="14" fill="#65758d">Original responsive behaviour — Suite stays labelled; product windows can collapse when space is needed.</text>
+<g transform="translate(54 128)" filter="url(#shadow)">
+ <rect width="400" height="420" rx="16" fill="#fff" stroke="#dfe5ee"/>
+ <text x="24" y="34" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#26364d">Suite · fixed 192 px rail</text>
+ <rect x="24" y="58" width="192" height="338" rx="8" fill="url(#navy)"/>
+ <rect x="38" y="74" width="30" height="30" rx="8" fill="#526fe0"/>
+ <g fill="#fff"><rect x="46" y="82" width="6" height="6" rx="1"/><rect x="55" y="82" width="6" height="6" rx="1"/><rect x="46" y="91" width="6" height="6" rx="1"/><rect x="55" y="91" width="6" height="6" rx="1"/></g>
+ <text x="78" y="95" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#fff">brightdesk</text>
+ <g font-family="Arial,sans-serif" font-size="12" fill="#d6e0f2">
+  <rect x="34" y="126" width="172" height="38" rx="7" fill="#293e65"/>
+  <path d="M47 146l8-7 8 7v9h-6v-6h-4v6h-6z" fill="none" stroke="#fff" stroke-width="1.5"/>
+  <text x="72" y="150" fill="#fff">Home</text>
+  <g transform="translate(47 183)" fill="none" stroke="#d6e0f2" stroke-width="1.5"><rect width="7" height="7" rx="1"/><rect x="10" width="7" height="7" rx="1"/><rect y="10" width="7" height="7" rx="1"/><rect x="10" y="10" width="7" height="7" rx="1"/></g>
+  <text x="72" y="198">Apps</text>
+  <path d="M47 226h16v13H47z M50 222h8l3 4H47" fill="none" stroke="#d6e0f2" stroke-width="1.5"/>
+  <text x="72" y="237">Files</text>
+ </g>
+ <text x="240" y="180" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#26364d">No expand control</text>
+ <text x="240" y="204" font-family="Arial,sans-serif" font-size="12" fill="#65758d">Icons and labels</text>
+ <text x="240" y="222" font-family="Arial,sans-serif" font-size="12" fill="#65758d">always stay visible.</text>
+ <text x="240" y="260" font-family="Arial,sans-serif" font-size="12" fill="#65758d">Secondary captions</text>
+ <text x="240" y="278" font-family="Arial,sans-serif" font-size="12" fill="#65758d">are removed.</text>
+</g>
+<g transform="translate(520 128)" filter="url(#shadow)">
+ <rect width="400" height="420" rx="16" fill="#fff" stroke="#dfe5ee"/>
+ <text x="24" y="34" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#26364d">Product · expanded</text>
+ <rect x="24" y="58" width="232" height="338" rx="8" fill="#fff" stroke="#e1e7ef"/>
+ <rect x="42" y="75" width="34" height="34" rx="9" fill="#315fce"/>
+ <path d="M50 84h18v16H50z M56 84v16" fill="none" stroke="#fff" stroke-width="1.4"/>
+ <text x="88" y="97" font-family="Arial,sans-serif" font-size="17" font-weight="700" fill="#26364d">brightdesk</text>
+ <rect x="40" y="132" width="200" height="42" rx="8" fill="#eaf0ff"/>
+ <rect x="49" y="140" width="26" height="26" rx="7" fill="#315fce"/>
+ <path d="M55 147h14v12H55z" fill="none" stroke="#fff" stroke-width="1.3"/>
+ <text x="84" y="157" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="#234aa8">Brightdesk Pages</text>
+ <text x="84" y="169" font-family="Arial,sans-serif" font-size="9" fill="#64748b">Documents and writing</text>
+ <rect x="49" y="194" width="26" height="26" rx="7" fill="#edf2fa"/>
+ <g fill="none" stroke="#53647a" stroke-width="1.4"><rect x="55" y="200" width="6" height="6"/><rect x="64" y="200" width="6" height="6"/><rect x="55" y="209" width="6" height="6"/><rect x="64" y="209" width="6" height="6"/></g>
+ <text x="84" y="211" font-family="Arial,sans-serif" font-size="12" fill="#435168">Get products</text>
+ <rect x="49" y="234" width="26" height="26" rx="7" fill="#edf2fa"/>
+ <circle cx="62" cy="247" r="8" fill="none" stroke="#53647a" stroke-width="1.4"/>
+ <path d="M54 247h16M62 239a12 12 0 0 1 0 16M62 239a12 12 0 0 0 0 16" fill="none" stroke="#53647a" stroke-width="1.2"/>
+ <text x="84" y="251" font-family="Arial,sans-serif" font-size="12" fill="#435168">Languages</text>
+ <text x="278" y="180" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#26364d">Full labels</text>
+ <text x="278" y="204" font-family="Arial,sans-serif" font-size="12" fill="#65758d">Control appears</text>
+ <text x="278" y="222" font-family="Arial,sans-serif" font-size="12" fill="#65758d">only in product</text>
+ <text x="278" y="240" font-family="Arial,sans-serif" font-size="12" fill="#65758d">windows.</text>
+</g>
+<g transform="translate(986 128)" filter="url(#shadow)">
+ <rect width="400" height="420" rx="16" fill="#fff" stroke="#dfe5ee"/>
+ <text x="24" y="34" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#26364d">Product · compact</text>
+ <rect x="24" y="58" width="76" height="338" rx="8" fill="#fff" stroke="#e1e7ef"/>
+ <rect x="47" y="78" width="30" height="30" rx="8" fill="#315fce"/>
+ <path d="M54 85h16v14H54z M60 85v14" fill="none" stroke="#fff" stroke-width="1.4"/>
+ <rect x="40" y="138" width="44" height="44" rx="9" fill="#eaf0ff"/>
+ <rect x="49" y="147" width="26" height="26" rx="7" fill="#315fce"/>
+ <path d="M55 154h14v12H55z" fill="none" stroke="#fff" stroke-width="1.3"/>
+ <rect x="49" y="202" width="26" height="26" rx="7" fill="#edf2fa"/>
+ <g fill="none" stroke="#53647a" stroke-width="1.4"><rect x="55" y="208" width="6" height="6"/><rect x="64" y="208" width="6" height="6"/><rect x="55" y="217" width="6" height="6"/><rect x="64" y="217" width="6" height="6"/></g>
+ <rect x="49" y="246" width="26" height="26" rx="7" fill="#edf2fa"/>
+ <circle cx="62" cy="259" r="8" fill="none" stroke="#53647a" stroke-width="1.4"/>
+ <path d="M54 259h16M62 251a12 12 0 0 1 0 16M62 251a12 12 0 0 0 0 16" fill="none" stroke="#53647a" stroke-width="1.2"/>
+ <text x="124" y="180" font-family="Arial,sans-serif" font-size="13" font-weight="700" fill="#26364d">76 px icon rail</text>
+ <text x="124" y="204" font-family="Arial,sans-serif" font-size="12" fill="#65758d">Icons remain visible.</text>
+ <text x="124" y="222" font-family="Arial,sans-serif" font-size="12" fill="#65758d">Full names stay</text>
+ <text x="124" y="240" font-family="Arial,sans-serif" font-size="12" fill="#65758d">available to assistive</text>
+ <text x="124" y="258" font-family="Arial,sans-serif" font-size="12" fill="#65758d">technology and tooltips.</text>
+ <text x="124" y="294" font-family="Arial,sans-serif" font-size="12" fill="#65758d">User can expand it</text>
+ <text x="124" y="312" font-family="Arial,sans-serif" font-size="12" fill="#65758d">again when needed.</text>
+ <text x="124" y="348" font-family="Arial,sans-serif" font-size="12" fill="#65758d">At 640 px and below, it becomes a</text>
+ <text x="124" y="366" font-family="Arial,sans-serif" font-size="12" fill="#65758d">menu button that opens over content.</text>
+</g>
+</svg>

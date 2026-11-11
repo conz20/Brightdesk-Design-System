@@ -1,0 +1,37 @@
+/* Canonical Brightdesk design tokens.
+   Product-specific accent colours are supplied by each product's own design layer. */
+:root {
+  --bd-ui-canvas: #f4f6fa;
+  --bd-ui-surface: #ffffff;
+  --bd-ui-surface-muted: #f8f9fc;
+  --bd-ui-ink: #1c2940;
+  --bd-ui-text: #40516a;
+  --bd-ui-muted: #718097;
+  --bd-ui-line: #e1e7ef;
+  --bd-ui-line-strong: #d3dce8;
+  --bd-ui-accent: var(--bd-accent, #315fce);
+  --bd-ui-accent-strong: var(--bd-accent-strong, #234aa8);
+  --bd-ui-accent-soft: var(--bd-accent-soft, #eaf0ff);
+  --bd-ui-radius-sm: 7px;
+  --bd-ui-radius: 12px;
+  --bd-ui-radius-lg: 16px;
+  --bd-ui-space-1: 4px;
+  --bd-ui-space-2: 8px;
+  --bd-ui-space-3: 12px;
+  --bd-ui-space-4: 16px;
+  --bd-ui-space-5: 20px;
+  --bd-ui-space-6: 24px;
+  --bd-ui-space-8: 32px;
+  --bd-ui-shadow: 0 8px 28px rgba(28, 45, 72, .065);
+  --bd-ui-shadow-hover: 0 14px 34px rgba(28, 45, 72, .11);
+  --bd-ui-focus: var(--bd-ui-accent);
+  --bd-suite-navigation-width: 192px;
+  --bd-product-navigation-expanded-width: 232px;
+  --bd-product-navigation-compact-width: 76px;
+  --bd-navigation-icon-size: 34px;
+  --bd-navigation-toggle-size: 30px;
+  --bd-navigation-motion-duration: 180ms;
+  --bd-navigation-expanded-breakpoint: 1008px;
+  --bd-navigation-compact-breakpoint: 1007px;
+  --bd-navigation-minimal-breakpoint: 640px;
+}
