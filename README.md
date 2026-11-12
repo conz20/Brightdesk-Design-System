@@ -8,6 +8,15 @@ The canonical visual foundation for the ten Brightdesk Office Suite products.
 - `css/product-window.css` defines the focused product-window shell used by individual product editions.
 - Product-specific accent colours remain owned by each product. The shared shell reads the existing `--bd-accent` token rather than forcing one colour across the portfolio.
 
+## Shared motion foundation
+
+- `css/motion.css` provides opt-in motion primitives for surfaces, interactive controls, overlays, progress feedback and loading indicators.
+- `css/tokens.css` defines the common duration and easing scale. Product-window navigation uses the same timing tokens.
+- Reduced-motion preferences disable shared transitions and the spinner animation without hiding status or progress information.
+- `docs/MOTION_FOUNDATION.md` defines the CSS load order, usage rules and accessibility requirements.
+
+The shared stylesheet is copied into each product's packaged source tree. It is not loaded from a network service at runtime. Consumer repositories must be updated and verified separately.
+
 ## Product-window behaviour
 
 Each individual product edition receives its product identity from its existing launch argument. In that mode, the window:
