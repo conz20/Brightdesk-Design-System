@@ -30,7 +30,14 @@
   --bd-product-navigation-compact-width: 76px;
   --bd-navigation-icon-size: 34px;
   --bd-navigation-toggle-size: 30px;
-  --bd-navigation-motion-duration: 180ms;
+  --bd-motion-duration-fast: 120ms;
+  --bd-motion-duration-normal: 180ms;
+  --bd-motion-duration-slow: 260ms;
+  --bd-motion-duration-spinner: 900ms;
+  --bd-motion-ease-standard: cubic-bezier(.2, 0, 0, 1);
+  --bd-motion-ease-enter: cubic-bezier(.16, 1, .3, 1);
+  --bd-motion-ease-exit: cubic-bezier(.4, 0, 1, 1);
+  --bd-navigation-motion-duration: var(--bd-motion-duration-normal);
   --bd-navigation-expanded-breakpoint: 1008px;
   --bd-navigation-compact-breakpoint: 1007px;
   --bd-navigation-minimal-breakpoint: 640px;

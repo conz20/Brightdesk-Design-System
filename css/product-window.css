@@ -25,7 +25,7 @@ html.is-product-window .sidebar {
   position: relative;
   overflow-x: hidden;
   overflow-y: auto;
-  transition: width var(--bd-navigation-motion-duration, 180ms) ease, min-width var(--bd-navigation-motion-duration, 180ms) ease;
+  transition: width var(--bd-navigation-motion-duration, 180ms) var(--bd-motion-ease-standard, ease), min-width var(--bd-navigation-motion-duration, 180ms) var(--bd-motion-ease-standard, ease);
   background: var(--bd-ui-surface, #fff);
   border-right: 1px solid var(--bd-ui-line, #e1e7ef);
 }
