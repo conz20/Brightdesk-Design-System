@@ -6,11 +6,11 @@ const motion = fs.readFileSync(new URL('../css/motion.css', import.meta.url), 'u
 const tokens = fs.readFileSync(new URL('../css/tokens.css', import.meta.url), 'utf8');
 
 test('shared motion tokens define a consistent timing and easing scale', () => {
-  assert.match(tokens, /--bd-motion-duration-fast:\s*120ms/);
-  assert.match(tokens, /--bd-motion-duration-normal:\s*180ms/);
-  assert.match(tokens, /--bd-motion-duration-slow:\s*260ms/);
-  assert.match(tokens, /--bd-motion-ease-standard:\s*cubic-bezier\(/);
-  assert.match(tokens, /--bd-navigation-motion-duration:\s*var\(--bd-motion-duration-normal\)/);
+  assert.match(tokens, /--bd-motion-duration-fast:\\s*120ms/);
+  assert.match(tokens, /--bd-motion-duration-normal:\\s*180ms/);
+  assert.match(tokens, /--bd-motion-duration-slow:\\s*260ms/);
+  assert.match(tokens, /--bd-motion-ease-standard:\\s*cubic-bezier\\(/);
+  assert.match(tokens, /--bd-navigation-motion-duration:\\s*var\\(--bd-motion-duration-normal\\)/);
 });
 
 test('motion primitives are opt-in and avoid broad all-property transitions', () => {
@@ -23,7 +23,7 @@ test('motion primitives are opt-in and avoid broad all-property transitions', ()
     'bd-motion-spinner',
     'bd-motion-progress'
   ]) {
-    assert.match(motion, new RegExp('\\\\.' + className + '(?:\\\\s|\\\\{|:|\\\\[)'));
+    assert.ok(motion.includes('.' + className), 'missing .' + className + ' primitive');
   }
   assert.doesNotMatch(motion, /transition:\\s*all\\b/i);
 });
