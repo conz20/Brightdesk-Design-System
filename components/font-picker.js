@@ -29,7 +29,7 @@ function normalizeStringList(value, label) {
   const seen = new Set();
   return value.map((item, index) => {
     const exact = requireText(item, label + '[' + index + ']');
-    if (seen.has(exact)) fail(label + ' contains duplicate values.');
+    if (seen.has(exact)) fail('duplicate values in ' + label + '.');
     seen.add(exact);
     return exact;
   });
@@ -121,8 +121,8 @@ export function normalizeFontFamilies(collection) {
         }
         if (seenAxisTags.has(axis.tag)) fail(label + '.axes contains duplicate OpenType axis tag: ' + axis.tag + '.');
         seenAxisTags.add(axis.tag);
-        if (axis.tag === 'wght' && axis.default !== face.weight) {
-          fail(label + '.wght axis default must match the face weight.');
+        if (axis.tag === 'wght' && Math.round(axis.default) !== face.weight) {
+          fail(label + '.wght axis default must match the face weight when rounded.');
         }
         return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
       });
