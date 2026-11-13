@@ -411,3 +411,117 @@ test('preserves fractional values across the variable font weight axis', () => {
   assert.equal(picker.getValue().axes.wght, 512.5);
   assert.equal(picker.element.queryByControl('preview').style.fontWeight, '512.5');
 });
+
+
+test('preserves exact operating-system family, face and PostScript names', () => {
+  const collection = systemCollection([
+    {
+      familyName: ' Aptos ',
+      faces: [{
+        faceName: ' Aptos Regular ',
+        postScriptName: ' Aptos-Regular ',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: []
+      }]
+    }
+  ]);
+
+  const result = normalizeFontFamilies(collection);
+  assert.equal(result[0].familyName, ' Aptos ');
+  assert.equal(result[0].faces[0].faceName, ' Aptos Regular ');
+  assert.equal(result[0].faces[0].postScriptName, ' Aptos-Regular ');
+  assert.equal(escapeFontFamily(' Aptos '), '" Aptos ", sans-serif');
+});
+
+test('rejects unapproved filesystem and source metadata at the UI boundary', () => {
+  const collectionExtra = systemCollection();
+  collectionExtra.downloadUrl = 'https://example.invalid/font';
+  assert.throws(() => normalizeFontFamilies(collectionExtra), /unsupported property.*downloadUrl/i);
+
+  const familyExtra = systemCollection();
+  familyExtra.families[0].path = '/Users/example/Fonts/Aptos.ttf';
+  assert.throws(() => normalizeFontFamilies(familyExtra), /unsupported property.*path/i);
+
+  const faceExtra = systemCollection();
+  faceExtra.families[0].faces[0].sha256 = 'a'.repeat(64);
+  assert.throws(() => normalizeFontFamilies(faceExtra), /unsupported property.*sha256/i);
+
+  const axisExtra = systemCollection([{
+    familyName: 'Variable',
+    faces: [{
+      faceName: 'Variable',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [{ tag: 'wght', min: 100, default: 400, max: 900, filePath: '/private/font.ttf' }]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(axisExtra), /unsupported property.*filePath/i);
+});
+
+test('rejects duplicate OpenType axis tags and inconsistent variable weight defaults', () => {
+  const duplicateTags = systemCollection([{
+    familyName: 'Duplicate Axes',
+    faces: [{
+      faceName: 'Duplicate Axes',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [
+        { tag: 'wght', min: 100, default: 400, max: 900 },
+        { tag: 'wght', min: 200, default: 400, max: 800 }
+      ]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(duplicateTags), /duplicate OpenType axis tag/i);
+
+  const weightMismatch = systemCollection([{
+    familyName: 'Weight Mismatch',
+    faces: [{
+      faceName: 'Weight Mismatch',
+      style: 'normal',
+      weight: 450,
+      italic: false,
+      oblique: false,
+      axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(weightMismatch), /wght axis default must match/i);
+});
+
+test('validates optional script and language tags without changing their exact values', () => {
+  const result = normalizeFontFamilies(systemCollection([{
+    familyName: 'Multilingual',
+    faces: [{
+      faceName: 'Multilingual Regular',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [],
+      scripts: ['Latn', 'Cyrl'],
+      languages: ['en', 'sr-Latn']
+    }]
+  }]));
+  assert.deepEqual(result[0].faces[0].scripts, ['Latn', 'Cyrl']);
+  assert.deepEqual(result[0].faces[0].languages, ['en', 'sr-Latn']);
+
+  const duplicate = systemCollection([{
+    familyName: 'Duplicate Scripts',
+    faces: [{
+      faceName: 'Duplicate Scripts',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [],
+      scripts: ['Latn', 'Latn']
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(duplicate), /duplicate.*scripts/i);
+});

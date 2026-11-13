@@ -15,7 +15,24 @@ function requireText(value, label) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     fail(label + ' must be a non-empty string.');
   }
-  return value.trim();
+  return value;
+}
+
+function requireAllowedKeys(value, allowed, label) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) fail(label + ' contains unsupported property: ' + key + '.');
+  }
+}
+
+function normalizeStringList(value, label) {
+  if (!Array.isArray(value)) fail(label + ' must be an array of strings.');
+  const seen = new Set();
+  return value.map((item, index) => {
+    const exact = requireText(item, label + '[' + index + ']');
+    if (seen.has(exact)) fail('duplicate values in ' + label + '.');
+    seen.add(exact);
+    return exact;
+  });
 }
 
 function faceKey(face) {
@@ -42,10 +59,12 @@ export function normalizeFontFamilies(collection) {
   if (!isRecord(collection) || collection.source !== 'system' || !Array.isArray(collection.families)) {
     fail('collection must be a normalized local system-font collection.');
   }
+  requireAllowedKeys(collection, ['source', 'platform', 'provider', 'families'], 'collection');
 
   const byName = new Map();
   for (const [familyIndex, family] of collection.families.entries()) {
     if (!isRecord(family)) fail('families[' + familyIndex + '] must be an object.');
+    requireAllowedKeys(family, ['familyName', 'faces'], 'families[' + familyIndex + ']');
     const familyName = requireText(family.familyName, 'families[' + familyIndex + '].familyName');
     if (!Array.isArray(family.faces) || family.faces.length === 0) {
       fail('families[' + familyIndex + '].faces must contain at least one installed face.');
@@ -61,6 +80,11 @@ export function normalizeFontFamilies(collection) {
     for (const [faceIndex, face] of family.faces.entries()) {
       const label = 'families[' + familyIndex + '].faces[' + faceIndex + ']';
       if (!isRecord(face)) fail(label + ' must be an object.');
+      requireAllowedKeys(
+        face,
+        ['faceName', 'postScriptName', 'style', 'weight', 'italic', 'oblique', 'axes', 'scripts', 'languages'],
+        label
+      );
       const faceName = requireText(face.faceName, label + '.faceName');
       if (
         !VALID_STYLES.has(face.style) ||
@@ -82,40 +106,42 @@ export function normalizeFontFamilies(collection) {
 
       const axes = face.axes === undefined ? [] : face.axes;
       if (!Array.isArray(axes)) fail(label + '.axes must be an array.');
+      const seenAxisTags = new Set();
+      const normalizedAxes = axes.map(axis => {
+        if (!isRecord(axis)) fail(label + '.axes contains invalid OpenType axis metadata.');
+        requireAllowedKeys(axis, ['tag', 'min', 'default', 'max'], label + '.axes item');
+        if (
+          typeof axis.tag !== 'string' ||
+          !/^[A-Za-z0-9]{4}$/.test(axis.tag) ||
+          ![axis.min, axis.default, axis.max].every(Number.isFinite) ||
+          axis.min > axis.default ||
+          axis.default > axis.max
+        ) {
+          fail(label + '.axes contains invalid OpenType axis metadata.');
+        }
+        if (seenAxisTags.has(axis.tag)) fail(label + '.axes contains duplicate OpenType axis tag: ' + axis.tag + '.');
+        seenAxisTags.add(axis.tag);
+        if (axis.tag === 'wght' && Math.round(axis.default) !== face.weight) {
+          fail(label + '.wght axis default must match the face weight when rounded.');
+        }
+        return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
+      });
       const normalizedFace = {
         faceName,
         style: face.style,
         weight: face.weight,
         italic: face.italic,
         oblique: face.oblique,
-        axes: axes.map(axis => {
-          if (
-            !isRecord(axis) ||
-            typeof axis.tag !== 'string' ||
-            !/^[A-Za-z0-9]{4}$/.test(axis.tag) ||
-            ![axis.min, axis.default, axis.max].every(Number.isFinite) ||
-            axis.min > axis.default ||
-            axis.default > axis.max
-          ) {
-            fail(label + '.axes contains invalid OpenType axis metadata.');
-          }
-          return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
-        })
+        axes: normalizedAxes
       };
       if (face.postScriptName !== undefined) {
         normalizedFace.postScriptName = requireText(face.postScriptName, label + '.postScriptName');
       }
       if (face.scripts !== undefined) {
-        if (!Array.isArray(face.scripts) || face.scripts.some(value => typeof value !== 'string')) {
-          fail(label + '.scripts must be an array of strings.');
-        }
-        normalizedFace.scripts = [...face.scripts];
+        normalizedFace.scripts = normalizeStringList(face.scripts, label + '.scripts');
       }
       if (face.languages !== undefined) {
-        if (!Array.isArray(face.languages) || face.languages.some(value => typeof value !== 'string')) {
-          fail(label + '.languages must be an array of strings.');
-        }
-        normalizedFace.languages = [...face.languages];
+        normalizedFace.languages = normalizeStringList(face.languages, label + '.languages');
       }
 
       const signature = faceKey(normalizedFace);
@@ -137,7 +163,7 @@ export function normalizeFontFamilies(collection) {
 /** Safely quote an OS-reported family name for a CSS font-family declaration. */
 export function escapeFontFamily(familyName) {
   requireText(familyName, 'familyName');
-  const escaped = [...familyName.trim()].map(character => {
+  const escaped = [...familyName].map(character => {
     const code = character.codePointAt(0);
     if (character === '"' || character === '\\') return '\\' + character;
     if (code === 0) return '\\fffd ';
