@@ -641,7 +641,10 @@ test('a font already installed locally remains ready even when its catalogue rec
         availability: 'download-required',
         packageId: 'microsoft:aptos',
         version: '1.0.0',
-        faces: [{ faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] }]
+        faces: [
+          { faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] },
+          { faceName: 'Aptos Bold', style: 'normal', weight: 700, italic: false, oblique: false, axes: [] }
+        ]
       },
       {
         familyName: 'Aptos',
