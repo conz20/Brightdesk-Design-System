@@ -42,7 +42,7 @@ class FakeElement {
   }
 
   dispatch(name) {
-    for (const callback of this.listeners.get(name) ?? []) callback({ target: this });
+    return (this.listeners.get(name) ?? []).map(callback => callback({ target: this }));
   }
 
   queryByControl(control) {
@@ -663,4 +663,46 @@ test('rejects catalogue-only fonts that lack a safe Brightdesk package identity'
   const invalid = downloadableFontCollection();
   delete invalid.families[0].packageId;
   assert.throws(() => normalizeFontFamilies(invalid), /packageId/);
+});
+
+
+test('awaits the Brightdesk package request before exposing a downloaded font', async () => {
+  const installed = {
+    source: 'bundled',
+    families: [{
+      familyName: 'Orbit Sans',
+      faces: [{
+        faceName: 'Orbit Sans Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload: async () => installed
+  });
+
+  const request = picker.element.queryByControl('download').dispatch('click')[0];
+  assert.equal(picker.getAvailability().status, 'download-required');
+  assert.equal(picker.element.queryByControl('download').disabled, true);
+  await request;
+  assert.equal(picker.getAvailability().status, 'ready');
+  assert.equal(picker.element.queryByControl('face').disabled, false);
+});
+
+test('keeps catalogue-only fonts visible but disables downloading when no Brightdesk handler is connected', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection()
+  });
+
+  assert.equal(picker.element.queryByControl('family').children[0].textContent, 'Orbit Sans (Download required)');
+  assert.equal(picker.element.queryByControl('download').hidden, false);
+  assert.equal(picker.element.queryByControl('download').disabled, true);
+  assert.match(picker.element.queryByControl('availability').textContent, /Brightdesk updates/);
 });
