@@ -6,14 +6,14 @@ Brightdesk-Design-System owns the shared, framework-neutral typography controls 
 
 ## Current font-discovery contract
 
-The picker consumes the normalized local collection returned by Brightdesk-Type-Preview's `discoverSystemFonts(adapter)` API:
+The picker accepts normalized local collections from Brightdesk-Type-Preview's `discoverSystemFonts(adapter)` API or the approved Brightdesk-Fonts catalogue adapter:
 
-- `source` must be `system`;
+- `source` must be `system`, `bundled` or `combined`;
 - `families` is an array of family records;
 - each family has its exact OS-reported `familyName` and one or more `faces`;
 - each face carries `faceName`, `style`, numeric `weight`, `italic`, `oblique`, and optional variable `axes`.
 
-The picker preserves OS names, merges repeated family records case-insensitively without dropping distinct faces, and leaves Microsoft fonts such as Aptos and Segoe UI available whenever they are installed locally. It exposes the installed face list for the chosen family and creates range controls for the face's declared variable axes. It does not bundle or redistribute proprietary font binaries.
+The picker preserves exact original family and face names (including bundled names such as `Inter`), merges repeated family records case-insensitively without dropping distinct faces, and leaves Microsoft fonts such as Aptos and Segoe UI available whenever they are installed locally. It exposes the installed face list for the chosen family and creates range controls for the face's declared variable axes. It does not bundle or redistribute proprietary font binaries.
 
 ## API
 
