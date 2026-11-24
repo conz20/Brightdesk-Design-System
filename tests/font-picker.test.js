@@ -655,8 +655,9 @@ test('a font already installed locally remains ready even when its catalogue rec
   });
 
   assert.equal(result.length, 1);
-  assert.equal(result[0].availability, 'ready');
-  assert.equal(result[0].faces.length, 1);
+  assert.equal(result[0].availability, undefined);
+  assert.equal(result[0].packageId, undefined);
+  assert.deepEqual(result[0].faces.map(face => face.faceName), ['Aptos']);
 });
 
 test('rejects catalogue-only fonts that lack a safe Brightdesk package identity', () => {
