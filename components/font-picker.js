@@ -244,21 +244,25 @@ function boundedInteger(rawValue, minimum, maximum, fallback) {
 /**
  * Create a framework-neutral, accessible font-picker control group.
  *
- * Pass a normalized collection from Brightdesk-Type-Preview's
- * discoverSystemFonts() API. This component only consumes local metadata;
- * it performs no font discovery, file access, installation or network calls.
+ * Pass local, bundled or Brightdesk catalogue metadata. Download requests
+ * are delegated to the host application's Brightdesk update channel; this
+ * component never fetches remote files or installs fonts itself.
  */
 export function createFontPicker({
   document,
   collection,
   initialValue = {},
-  onChange
+  onChange,
+  onDownload
 } = {}) {
   if (!document || typeof document.createElement !== 'function') {
     fail('a document with createElement() is required.');
   }
   if (onChange !== undefined && typeof onChange !== 'function') {
     fail('onChange must be a function when provided.');
+  }
+  if (onDownload !== undefined && typeof onDownload !== 'function') {
+    fail('onDownload must be a function when provided.');
   }
   if (!isRecord(initialValue)) fail('initialValue must be an object.');
 
@@ -292,6 +296,16 @@ export function createFontPicker({
   specimenInput.type = 'text';
   specimenInput.maxLength = 240;
 
+  const availabilityStatus = createElement(document, 'p', 'bd-font-picker__availability', 'availability');
+  availabilityStatus.setAttribute('role', 'status');
+  availabilityStatus.setAttribute('aria-live', 'polite');
+  availabilityStatus.hidden = true;
+
+  const downloadButton = createElement(document, 'button', 'bd-font-picker__download', 'download');
+  downloadButton.type = 'button';
+  downloadButton.textContent = 'Download font';
+  downloadButton.hidden = true;
+
   const preview = createElement(document, 'p', 'bd-font-picker__preview', 'preview');
   preview.setAttribute('role', 'region');
   preview.setAttribute('aria-label', 'Font preview');
@@ -306,12 +320,15 @@ export function createFontPicker({
   );
   root.append(
     controls,
+    availabilityStatus,
+    downloadButton,
     axisControls,
     createLabel(document, 'Preview text', specimenInput, 'bd-font-picker__specimen-field'),
     preview
   );
 
   let axisInputs = new Map();
+  const pendingDownloads = new Set();
 
   function selectedFamily() {
     return families.find(family => family.familyName === familySelect.value) || null;
@@ -396,6 +413,17 @@ export function createFontPicker({
       renderAxisControls(null);
       return;
     }
+    if (family.availability === 'download-required') {
+      const option = createElement(document, 'option');
+      option.value = '';
+      option.textContent = 'Download to use this font';
+      option.disabled = true;
+      faceSelect.append(option);
+      faceSelect.value = '';
+      faceSelect.disabled = true;
+      renderAxisControls(null);
+      return;
+    }
 
     for (const [index, face] of family.faces.entries()) {
       const option = createElement(document, 'option');
@@ -430,7 +458,9 @@ export function createFontPicker({
     for (const family of families) {
       const option = createElement(document, 'option');
       option.value = family.familyName;
-      option.textContent = family.familyName;
+      option.textContent = family.availability === 'download-required'
+        ? family.familyName + ' (Download required)'
+        : family.familyName;
       familySelect.append(option);
     }
 
@@ -463,12 +493,33 @@ export function createFontPicker({
 
   function apply(emitChange = true) {
     const value = currentValue();
+    const family = selectedFamily();
     const hasFamily = Boolean(value.familyName);
+    const isDownloadRequired = Boolean(family && family.availability === 'download-required');
+    const isReady = hasFamily && !isDownloadRequired;
+
     for (const control of [faceSelect, sizeInput, weightInput, italicInput, specimenInput]) {
-      control.disabled = !hasFamily;
+      control.disabled = !isReady;
+    }
+    availabilityStatus.hidden = !isDownloadRequired;
+    downloadButton.hidden = !isDownloadRequired;
+    downloadButton.disabled = !onDownload || pendingDownloads.has(family && family.familyName);
+
+    if (isDownloadRequired) {
+      availabilityStatus.textContent = onDownload
+        ? 'Download and install this font before using it.'
+        : 'This font needs to be downloaded through Brightdesk updates before it can be used.';
+      preview.textContent = 'Download and install this font to use it.';
+      preview.style.fontFamily = '';
+      preview.style.fontSize = '';
+      preview.style.fontWeight = '';
+      preview.style.fontStyle = '';
+      preview.style.fontVariationSettings = 'normal';
+      return;
     }
 
     if (!hasFamily) {
+      availabilityStatus.hidden = true;
       preview.textContent = 'No installed fonts were found.';
       preview.style.fontFamily = '';
       preview.style.fontSize = '';
@@ -514,10 +565,64 @@ export function createFontPicker({
     update();
   }
 
+  function setCollection(nextCollection) {
+    const previous = currentValue();
+    families = normalizeFontFamilies(nextCollection);
+    rebuildFamilyOptions(previous.familyName, previous);
+    apply(false);
+    return currentValue();
+  }
+
+  function requestDownload() {
+    const family = selectedFamily();
+    if (!family || family.availability !== 'download-required' || !onDownload) return;
+
+    const request = Object.freeze({
+      familyName: family.familyName,
+      packageId: family.packageId,
+      version: family.version
+    });
+    pendingDownloads.add(family.familyName);
+    apply(false);
+    availabilityStatus.textContent = 'Requesting font package from Brightdesk updates.';
+
+    const finish = nextCollection => {
+      pendingDownloads.delete(family.familyName);
+      if (isRecord(nextCollection) && Array.isArray(nextCollection.families)) {
+        setCollection(nextCollection);
+      } else {
+        apply(false);
+        if (selectedFamily() && selectedFamily().familyName === family.familyName) {
+          availabilityStatus.textContent = 'Download request finished. Refresh font availability after installation to use this font.';
+        }
+      }
+    };
+    const reject = error => {
+      pendingDownloads.delete(family.familyName);
+      apply(false);
+      const message = error && typeof error.message === 'string' ? error.message.slice(0, 200) : 'Please try again.';
+      if (selectedFamily() && selectedFamily().familyName === family.familyName) {
+        availabilityStatus.textContent = 'Font download failed. ' + message;
+      }
+    };
+
+    try {
+      const result = onDownload(request);
+      if (result && typeof result.then === 'function') {
+        result.then(finish, reject);
+      } else {
+        finish(result);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  }
+
   familySelect.addEventListener('change', () => {
     rebuildFaceOptions();
     update();
   });
+  downloadButton.addEventListener('click', requestDownload);
   faceSelect.addEventListener('change', handleFaceChange);
   sizeInput.addEventListener('input', update);
   weightInput.addEventListener('input', update);
@@ -553,13 +658,14 @@ export function createFontPicker({
   return {
     element: root,
     getValue: currentValue,
-    setCollection(nextCollection) {
-      const previous = currentValue();
-      families = normalizeFontFamilies(nextCollection);
-      rebuildFamilyOptions(previous.familyName, previous);
-      apply(false);
-      return currentValue();
+    getAvailability() {
+      const family = selectedFamily();
+      if (!family) return { familyName: '', status: 'none' };
+      return family.availability === 'download-required'
+        ? { familyName: family.familyName, status: 'download-required', packageId: family.packageId, version: family.version }
+        : { familyName: family.familyName, status: 'ready' };
     },
+    setCollection,
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
       const previous = currentValue();
