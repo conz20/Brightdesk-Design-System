@@ -33,14 +33,14 @@ function faceKey(face) {
 }
 
 /**
- * Convert Brightdesk-Type-Preview's normalized local system-font collection
+ * Convert a normalized local system or bundled font collection
  * into the stable family list consumed by shared typography controls.
  * Exact OS-reported family and face names are preserved. Repeated family
  * records are coalesced without discarding their distinct installed faces.
  */
 export function normalizeFontFamilies(collection) {
-  if (!isRecord(collection) || collection.source !== 'system' || !Array.isArray(collection.families)) {
-    fail('collection must be a normalized local system-font collection.');
+  if (!isRecord(collection) || !['system', 'bundled', 'combined'].includes(collection.source) || !Array.isArray(collection.families)) {
+    fail('collection must be a normalized local system or bundled font collection.');
   }
 
   const byName = new Map();
