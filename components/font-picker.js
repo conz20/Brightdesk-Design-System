@@ -81,8 +81,8 @@ export function normalizeFontFamilies(collection) {
     if (!['ready', 'download-required'].includes(availability)) {
       fail('families[' + familyIndex + '].availability must be ready or download-required.');
     }
-    if (collection.source === 'system' && availability !== 'ready') {
-      fail('local system fonts cannot require a download.');
+    if (['system', 'bundled'].includes(collection.source) && availability !== 'ready') {
+      fail('local system and bundled fonts cannot require a download.');
     }
     let packageId;
     let version;
@@ -616,12 +616,13 @@ export function createFontPicker({
     try {
       const result = onDownload(request);
       if (result && typeof result.then === 'function') {
-        result.then(finish).catch(reject);
-      } else {
-        finish(result);
+        return result.then(finish).catch(reject);
       }
+      finish(result);
+      return result;
     } catch (error) {
       reject(error);
+      return undefined;
     }
   }
 
