@@ -99,6 +99,7 @@ export function normalizeFontFamilies(collection) {
 
     const key = familyName.toLocaleLowerCase('en-US');
     let normalized = byName.get(key);
+    let includeFaces = true;
     if (!normalized) {
       normalized = {
         familyName,
@@ -110,15 +111,21 @@ export function normalizeFontFamilies(collection) {
       };
       byName.set(key, normalized);
     } else if (availability === 'ready') {
+      if (normalized.availability === 'download-required') {
+        normalized.faces = [];
+        normalized._faceKeys.clear();
+      }
       normalized.availability = 'ready';
       delete normalized.packageId;
       delete normalized.version;
-    } else if (normalized.availability === 'download-required' &&
-      (normalized.packageId !== packageId || normalized.version !== version)) {
+    } else if (normalized.availability === 'ready') {
+      includeFaces = false;
+    } else if (normalized.packageId !== packageId || normalized.version !== version) {
       fail('duplicate catalogue family records have conflicting Brightdesk package identities.');
     }
 
     for (const [faceIndex, face] of family.faces.entries()) {
+      if (!includeFaces) continue;
       const label = 'families[' + familyIndex + '].faces[' + faceIndex + ']';
       if (!isRecord(face)) fail(label + ' must be an object.');
       requireAllowedKeys(
@@ -593,7 +600,7 @@ export function createFontPicker({
       } else {
         apply(false);
         if (selectedFamily() && selectedFamily().familyName === family.familyName) {
-          availabilityStatus.textContent = 'Download request finished. Refresh font availability after installation to use this font.';
+          availabilityStatus.textContent = 'Download request submitted. Refresh font availability after Brightdesk verifies and installs the package.';
         }
       }
     };
@@ -609,7 +616,7 @@ export function createFontPicker({
     try {
       const result = onDownload(request);
       if (result && typeof result.then === 'function') {
-        result.then(finish, reject);
+        result.then(finish).catch(reject);
       } else {
         finish(result);
       }
