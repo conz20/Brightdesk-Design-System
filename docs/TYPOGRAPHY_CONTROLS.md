@@ -13,7 +13,7 @@ The picker accepts normalized local collections from Brightdesk-Type-Preview's `
 - each family has its exact OS-reported `familyName` and one or more `faces`;
 - each face carries `faceName`, `style`, numeric `weight`, `italic`, `oblique`, and optional variable `axes`.
 
-The picker preserves exact original family and face names (including bundled names such as `Inter`), merges repeated family records case-insensitively without dropping distinct faces, and leaves Microsoft fonts such as Aptos and Segoe UI available whenever they are installed locally. It exposes the installed face list for the chosen family and creates range controls for the face's declared variable axes. It does not bundle or redistribute proprietary font binaries.
+The picker preserves exact original family and face names (including bundled names such as `Inter`), merges repeated family records case-insensitively without dropping distinct faces, and leaves Microsoft fonts such as Aptos and Segoe UI available whenever they are installed locally. It exposes the installed face list for the chosen family and creates range controls for the face's declared variable axes. It does not bundle or redistribute proprietary font binaries. The normalizer preserves exact family, face and PostScript names as supplied; it does not trim them. It accepts only the documented collection, family, face and axis properties, rejecting paths, checksums, download URLs and other unapproved metadata. Axis tags must be unique, ranges must be finite and ordered, and a declared `wght` default must match the face weight. Optional script and language lists preserve their exact values and reject blanks or duplicates.
 
 ## API
 
