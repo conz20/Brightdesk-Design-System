@@ -88,6 +88,24 @@ test('normalizes the local system-font collection without losing Microsoft famil
   assert.equal(result[1].faces[0].faceName, 'Segoe UI Variable Text');
 });
 
+
+test('normalizes approved bundled font families without changing their original names', () => {
+  const result = normalizeFontFamilies({
+    source: 'bundled',
+    families: [{
+      familyName: 'Inter',
+      faces: [{ faceName: 'Inter', style: 'normal', weight: 400, italic: false, oblique: false, axes: [
+        { tag: 'opsz', min: 14, default: 14, max: 32 },
+        { tag: 'wght', min: 100, default: 400, max: 900 }
+      ] }]
+    }]
+  });
+
+  assert.equal(result[0].familyName, 'Inter');
+  assert.equal(result[0].faces[0].faceName, 'Inter');
+  assert.deepEqual(result[0].faces[0].axes.map(axis => axis.tag), ['opsz', 'wght']);
+});
+
 test('merges repeated family records but retains distinct installed faces', () => {
   const result = normalizeFontFamilies(systemCollection([
     { familyName: 'Aptos', faces: [{ faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] }] },
