@@ -542,3 +542,122 @@ test('validates optional script and language tags without changing their exact v
   }]);
   assert.throws(() => normalizeFontFamilies(duplicate), /duplicate.*scripts/i);
 });
+
+
+function downloadableFontCollection(familyName = 'Orbit Sans') {
+  return {
+    source: 'catalogue',
+    families: [{
+      familyName,
+      availability: 'download-required',
+      packageId: 'google:orbit-sans',
+      version: '1.0.0',
+      faces: [{
+        faceName: familyName + ' Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+}
+
+test('shows catalogue fonts before download but blocks their use until installed', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload: () => {}
+  });
+
+  const family = picker.element.queryByControl('family');
+  const face = picker.element.queryByControl('face');
+  const preview = picker.element.queryByControl('preview');
+  const download = picker.element.queryByControl('download');
+  const size = picker.element.queryByControl('size');
+
+  assert.equal(family.disabled, false);
+  assert.equal(family.children[0].textContent, 'Orbit Sans (Download required)');
+  assert.deepEqual(picker.getAvailability(), {
+    familyName: 'Orbit Sans',
+    status: 'download-required',
+    packageId: 'google:orbit-sans',
+    version: '1.0.0'
+  });
+  assert.equal(face.disabled, true);
+  assert.equal(size.disabled, true);
+  assert.equal(preview.textContent, 'Download and install this font to use it.');
+  assert.equal(preview.style.fontFamily, '');
+  assert.equal(download.hidden, false);
+  assert.equal(download.disabled, false);
+});
+
+test('requests a Brightdesk font package and refreshes the picker after local installation', () => {
+  let request;
+  const installed = {
+    source: 'bundled',
+    families: [{
+      familyName: 'Orbit Sans',
+      faces: [{
+        faceName: 'Orbit Sans Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload(value) {
+      request = value;
+      return installed;
+    }
+  });
+
+  picker.element.queryByControl('download').dispatch('click');
+
+  assert.deepEqual(request, {
+    familyName: 'Orbit Sans',
+    packageId: 'google:orbit-sans',
+    version: '1.0.0'
+  });
+  assert.equal(picker.getAvailability().status, 'ready');
+  assert.equal(picker.element.queryByControl('download').hidden, true);
+  assert.equal(picker.element.queryByControl('face').disabled, false);
+  assert.equal(picker.getValue().familyName, 'Orbit Sans');
+  assert.equal(picker.getValue().faceName, 'Orbit Sans Variable');
+});
+
+test('a font already installed locally remains ready even when its catalogue record says download required', () => {
+  const result = normalizeFontFamilies({
+    source: 'combined',
+    families: [
+      {
+        familyName: 'Aptos',
+        availability: 'download-required',
+        packageId: 'microsoft:aptos',
+        version: '1.0.0',
+        faces: [{ faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] }]
+      },
+      {
+        familyName: 'Aptos',
+        availability: 'ready',
+        faces: [{ faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] }]
+      }
+    ]
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].availability, 'ready');
+  assert.equal(result[0].faces.length, 1);
+});
+
+test('rejects catalogue-only fonts that lack a safe Brightdesk package identity', () => {
+  const invalid = downloadableFontCollection();
+  delete invalid.families[0].packageId;
+  assert.throws(() => normalizeFontFamilies(invalid), /packageId/);
+});
