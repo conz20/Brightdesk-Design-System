@@ -120,6 +120,42 @@
   opacity: .58;
 }
 
+.bd-font-picker__availability {
+  margin: 0;
+  color: var(--bd-ui-muted, #718097);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bd-font-picker__download {
+  justify-self: start;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid var(--bd-ui-accent, #315fce);
+  border-radius: var(--bd-ui-radius-sm, 7px);
+  background: var(--bd-ui-accent, #315fce);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bd-font-picker__download:focus-visible {
+  outline: 2px solid var(--bd-ui-focus, #315fce);
+  outline-offset: 3px;
+}
+
+.bd-font-picker__download:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.bd-font-picker__download[hidden],
+.bd-font-picker__availability[hidden] {
+  display: none;
+}
+
 .bd-font-picker__preview {
   box-sizing: border-box;
   min-height: 76px;

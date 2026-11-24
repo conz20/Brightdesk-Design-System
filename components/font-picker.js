@@ -15,7 +15,24 @@ function requireText(value, label) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     fail(label + ' must be a non-empty string.');
   }
-  return value.trim();
+  return value;
+}
+
+function requireAllowedKeys(value, allowed, label) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.includes(key)) fail(label + ' contains unsupported property: ' + key + '.');
+  }
+}
+
+function normalizeStringList(value, label) {
+  if (!Array.isArray(value)) fail(label + ' must be an array of strings.');
+  const seen = new Set();
+  return value.map((item, index) => {
+    const exact = requireText(item, label + '[' + index + ']');
+    if (seen.has(exact)) fail('duplicate values in ' + label + '.');
+    seen.add(exact);
+    return exact;
+  });
 }
 
 function faceKey(face) {
@@ -38,29 +55,84 @@ function faceKey(face) {
  * Exact OS-reported family and face names are preserved. Repeated family
  * records are coalesced without discarding their distinct installed faces.
  */
+function normalizePackageIdentity(value, label, pattern) {
+  const exact = requireText(value, label);
+  if (!pattern.test(exact)) fail(label + ' contains unsupported characters.');
+  return exact;
+}
+
+/**
+ * Normalize local system, bundled and Brightdesk catalogue font records.
+ * Catalogue-only families remain visible but carry no usable face until their
+ * Brightdesk package has been downloaded, verified and installed locally.
+ */
 export function normalizeFontFamilies(collection) {
-  if (!isRecord(collection) || collection.source !== 'system' || !Array.isArray(collection.families)) {
-    fail('collection must be a normalized local system-font collection.');
+  if (!isRecord(collection) || !['system', 'bundled', 'catalogue', 'combined'].includes(collection.source) || !Array.isArray(collection.families)) {
+    fail('collection must be a normalized system, bundled, catalogue or combined font collection.');
   }
+  requireAllowedKeys(collection, ['source', 'platform', 'provider', 'families'], 'collection');
 
   const byName = new Map();
   for (const [familyIndex, family] of collection.families.entries()) {
     if (!isRecord(family)) fail('families[' + familyIndex + '] must be an object.');
+    requireAllowedKeys(family, ['familyName', 'faces', 'availability', 'packageId', 'version'], 'families[' + familyIndex + ']');
     const familyName = requireText(family.familyName, 'families[' + familyIndex + '].familyName');
+    const availability = family.availability || (collection.source === 'catalogue' ? 'download-required' : 'ready');
+    if (!['ready', 'download-required'].includes(availability)) {
+      fail('families[' + familyIndex + '].availability must be ready or download-required.');
+    }
+    if (['system', 'bundled'].includes(collection.source) && availability !== 'ready') {
+      fail('local system and bundled fonts cannot require a download.');
+    }
+    let packageId;
+    let version;
+    if (availability === 'download-required') {
+      packageId = normalizePackageIdentity(family.packageId, 'families[' + familyIndex + '].packageId', /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/);
+      version = normalizePackageIdentity(family.version, 'families[' + familyIndex + '].version', /^[A-Za-z0-9][A-Za-z0-9._+-]{0,79}$/);
+    } else if (family.packageId !== undefined || family.version !== undefined) {
+      packageId = normalizePackageIdentity(family.packageId, 'families[' + familyIndex + '].packageId', /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/);
+      version = normalizePackageIdentity(family.version, 'families[' + familyIndex + '].version', /^[A-Za-z0-9][A-Za-z0-9._+-]{0,79}$/);
+    }
     if (!Array.isArray(family.faces) || family.faces.length === 0) {
-      fail('families[' + familyIndex + '].faces must contain at least one installed face.');
+      fail('families[' + familyIndex + '].faces must contain at least one face record.');
     }
 
     const key = familyName.toLocaleLowerCase('en-US');
     let normalized = byName.get(key);
+    let includeFaces = true;
     if (!normalized) {
-      normalized = { familyName, faces: [], _faceKeys: new Set() };
+      normalized = {
+        familyName,
+        faces: [],
+        availability,
+        packageId,
+        version,
+        _faceKeys: new Set()
+      };
       byName.set(key, normalized);
+    } else if (availability === 'ready') {
+      if (normalized.availability === 'download-required') {
+        normalized.faces = [];
+        normalized._faceKeys.clear();
+      }
+      normalized.availability = 'ready';
+      delete normalized.packageId;
+      delete normalized.version;
+    } else if (normalized.availability === 'ready') {
+      includeFaces = false;
+    } else if (normalized.packageId !== packageId || normalized.version !== version) {
+      fail('duplicate catalogue family records have conflicting Brightdesk package identities.');
     }
 
     for (const [faceIndex, face] of family.faces.entries()) {
+      if (!includeFaces) continue;
       const label = 'families[' + familyIndex + '].faces[' + faceIndex + ']';
       if (!isRecord(face)) fail(label + ' must be an object.');
+      requireAllowedKeys(
+        face,
+        ['faceName', 'postScriptName', 'style', 'weight', 'italic', 'oblique', 'axes', 'scripts', 'languages'],
+        label
+      );
       const faceName = requireText(face.faceName, label + '.faceName');
       if (
         !VALID_STYLES.has(face.style) ||
@@ -82,40 +154,42 @@ export function normalizeFontFamilies(collection) {
 
       const axes = face.axes === undefined ? [] : face.axes;
       if (!Array.isArray(axes)) fail(label + '.axes must be an array.');
+      const seenAxisTags = new Set();
+      const normalizedAxes = axes.map(axis => {
+        if (!isRecord(axis)) fail(label + '.axes contains invalid OpenType axis metadata.');
+        requireAllowedKeys(axis, ['tag', 'min', 'default', 'max'], label + '.axes item');
+        if (
+          typeof axis.tag !== 'string' ||
+          !/^[A-Za-z0-9]{4}$/.test(axis.tag) ||
+          ![axis.min, axis.default, axis.max].every(Number.isFinite) ||
+          axis.min > axis.default ||
+          axis.default > axis.max
+        ) {
+          fail(label + '.axes contains invalid OpenType axis metadata.');
+        }
+        if (seenAxisTags.has(axis.tag)) fail(label + '.axes contains duplicate OpenType axis tag: ' + axis.tag + '.');
+        seenAxisTags.add(axis.tag);
+        if (axis.tag === 'wght' && Math.round(axis.default) !== face.weight) {
+          fail(label + '.wght axis default must match the face weight when rounded.');
+        }
+        return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
+      });
       const normalizedFace = {
         faceName,
         style: face.style,
         weight: face.weight,
         italic: face.italic,
         oblique: face.oblique,
-        axes: axes.map(axis => {
-          if (
-            !isRecord(axis) ||
-            typeof axis.tag !== 'string' ||
-            !/^[A-Za-z0-9]{4}$/.test(axis.tag) ||
-            ![axis.min, axis.default, axis.max].every(Number.isFinite) ||
-            axis.min > axis.default ||
-            axis.default > axis.max
-          ) {
-            fail(label + '.axes contains invalid OpenType axis metadata.');
-          }
-          return { tag: axis.tag, min: axis.min, default: axis.default, max: axis.max };
-        })
+        axes: normalizedAxes
       };
       if (face.postScriptName !== undefined) {
         normalizedFace.postScriptName = requireText(face.postScriptName, label + '.postScriptName');
       }
       if (face.scripts !== undefined) {
-        if (!Array.isArray(face.scripts) || face.scripts.some(value => typeof value !== 'string')) {
-          fail(label + '.scripts must be an array of strings.');
-        }
-        normalizedFace.scripts = [...face.scripts];
+        normalizedFace.scripts = normalizeStringList(face.scripts, label + '.scripts');
       }
       if (face.languages !== undefined) {
-        if (!Array.isArray(face.languages) || face.languages.some(value => typeof value !== 'string')) {
-          fail(label + '.languages must be an array of strings.');
-        }
-        normalizedFace.languages = [...face.languages];
+        normalizedFace.languages = normalizeStringList(face.languages, label + '.languages');
       }
 
       const signature = faceKey(normalizedFace);
@@ -127,9 +201,10 @@ export function normalizeFontFamilies(collection) {
   }
 
   return [...byName.values()]
-    .map(({ familyName, faces }) => ({
+    .map(({ familyName, faces, availability, packageId, version }) => ({
       familyName,
-      faces: faces.sort((a, b) => a.style.localeCompare(b.style) || a.weight - b.weight || a.faceName.localeCompare(b.faceName))
+      faces: faces.sort((a, b) => a.style.localeCompare(b.style) || a.weight - b.weight || a.faceName.localeCompare(b.faceName)),
+      ...(availability === 'download-required' ? { availability, packageId, version } : {})
     }))
     .sort((a, b) => a.familyName.localeCompare(b.familyName, 'en', { sensitivity: 'base' }));
 }
@@ -137,7 +212,7 @@ export function normalizeFontFamilies(collection) {
 /** Safely quote an OS-reported family name for a CSS font-family declaration. */
 export function escapeFontFamily(familyName) {
   requireText(familyName, 'familyName');
-  const escaped = [...familyName.trim()].map(character => {
+  const escaped = [...familyName].map(character => {
     const code = character.codePointAt(0);
     if (character === '"' || character === '\\') return '\\' + character;
     if (code === 0) return '\\fffd ';
@@ -176,21 +251,25 @@ function boundedInteger(rawValue, minimum, maximum, fallback) {
 /**
  * Create a framework-neutral, accessible font-picker control group.
  *
- * Pass a normalized collection from Brightdesk-Type-Preview's
- * discoverSystemFonts() API. This component only consumes local metadata;
- * it performs no font discovery, file access, installation or network calls.
+ * Pass local, bundled or Brightdesk catalogue metadata. Download requests
+ * are delegated to the host application's Brightdesk update channel; this
+ * component never fetches remote files or installs fonts itself.
  */
 export function createFontPicker({
   document,
   collection,
   initialValue = {},
-  onChange
+  onChange,
+  onDownload
 } = {}) {
   if (!document || typeof document.createElement !== 'function') {
     fail('a document with createElement() is required.');
   }
   if (onChange !== undefined && typeof onChange !== 'function') {
     fail('onChange must be a function when provided.');
+  }
+  if (onDownload !== undefined && typeof onDownload !== 'function') {
+    fail('onDownload must be a function when provided.');
   }
   if (!isRecord(initialValue)) fail('initialValue must be an object.');
 
@@ -224,6 +303,16 @@ export function createFontPicker({
   specimenInput.type = 'text';
   specimenInput.maxLength = 240;
 
+  const availabilityStatus = createElement(document, 'p', 'bd-font-picker__availability', 'availability');
+  availabilityStatus.setAttribute('role', 'status');
+  availabilityStatus.setAttribute('aria-live', 'polite');
+  availabilityStatus.hidden = true;
+
+  const downloadButton = createElement(document, 'button', 'bd-font-picker__download', 'download');
+  downloadButton.type = 'button';
+  downloadButton.textContent = 'Download font';
+  downloadButton.hidden = true;
+
   const preview = createElement(document, 'p', 'bd-font-picker__preview', 'preview');
   preview.setAttribute('role', 'region');
   preview.setAttribute('aria-label', 'Font preview');
@@ -238,12 +327,15 @@ export function createFontPicker({
   );
   root.append(
     controls,
+    availabilityStatus,
+    downloadButton,
     axisControls,
     createLabel(document, 'Preview text', specimenInput, 'bd-font-picker__specimen-field'),
     preview
   );
 
   let axisInputs = new Map();
+  const pendingDownloads = new Set();
 
   function selectedFamily() {
     return families.find(family => family.familyName === familySelect.value) || null;
@@ -328,6 +420,17 @@ export function createFontPicker({
       renderAxisControls(null);
       return;
     }
+    if (family.availability === 'download-required') {
+      const option = createElement(document, 'option');
+      option.value = '';
+      option.textContent = 'Download to use this font';
+      option.disabled = true;
+      faceSelect.append(option);
+      faceSelect.value = '';
+      faceSelect.disabled = true;
+      renderAxisControls(null);
+      return;
+    }
 
     for (const [index, face] of family.faces.entries()) {
       const option = createElement(document, 'option');
@@ -362,7 +465,9 @@ export function createFontPicker({
     for (const family of families) {
       const option = createElement(document, 'option');
       option.value = family.familyName;
-      option.textContent = family.familyName;
+      option.textContent = family.availability === 'download-required'
+        ? family.familyName + ' (Download required)'
+        : family.familyName;
       familySelect.append(option);
     }
 
@@ -395,12 +500,33 @@ export function createFontPicker({
 
   function apply(emitChange = true) {
     const value = currentValue();
+    const family = selectedFamily();
     const hasFamily = Boolean(value.familyName);
+    const isDownloadRequired = Boolean(family && family.availability === 'download-required');
+    const isReady = hasFamily && !isDownloadRequired;
+
     for (const control of [faceSelect, sizeInput, weightInput, italicInput, specimenInput]) {
-      control.disabled = !hasFamily;
+      control.disabled = !isReady;
+    }
+    availabilityStatus.hidden = !isDownloadRequired;
+    downloadButton.hidden = !isDownloadRequired;
+    downloadButton.disabled = !onDownload || pendingDownloads.has(family && family.familyName);
+
+    if (isDownloadRequired) {
+      availabilityStatus.textContent = onDownload
+        ? 'Download and install this font before using it.'
+        : 'This font needs to be downloaded through Brightdesk updates before it can be used.';
+      preview.textContent = 'Download and install this font to use it.';
+      preview.style.fontFamily = '';
+      preview.style.fontSize = '';
+      preview.style.fontWeight = '';
+      preview.style.fontStyle = '';
+      preview.style.fontVariationSettings = 'normal';
+      return;
     }
 
     if (!hasFamily) {
+      availabilityStatus.hidden = true;
       preview.textContent = 'No installed fonts were found.';
       preview.style.fontFamily = '';
       preview.style.fontSize = '';
@@ -446,10 +572,65 @@ export function createFontPicker({
     update();
   }
 
+  function setCollection(nextCollection) {
+    const previous = currentValue();
+    families = normalizeFontFamilies(nextCollection);
+    rebuildFamilyOptions(previous.familyName, previous);
+    apply(false);
+    return currentValue();
+  }
+
+  function requestDownload() {
+    const family = selectedFamily();
+    if (!family || family.availability !== 'download-required' || !onDownload) return;
+
+    const request = Object.freeze({
+      familyName: family.familyName,
+      packageId: family.packageId,
+      version: family.version
+    });
+    pendingDownloads.add(family.familyName);
+    apply(false);
+    availabilityStatus.textContent = 'Requesting font package from Brightdesk updates.';
+
+    const finish = nextCollection => {
+      pendingDownloads.delete(family.familyName);
+      if (isRecord(nextCollection) && Array.isArray(nextCollection.families)) {
+        setCollection(nextCollection);
+      } else {
+        apply(false);
+        if (selectedFamily() && selectedFamily().familyName === family.familyName) {
+          availabilityStatus.textContent = 'Download request submitted. Refresh font availability after Brightdesk verifies and installs the package.';
+        }
+      }
+    };
+    const reject = error => {
+      pendingDownloads.delete(family.familyName);
+      apply(false);
+      const message = error && typeof error.message === 'string' ? error.message.slice(0, 200) : 'Please try again.';
+      if (selectedFamily() && selectedFamily().familyName === family.familyName) {
+        availabilityStatus.textContent = 'Font download failed. ' + message;
+      }
+    };
+
+    try {
+      const result = onDownload(request);
+      if (result && typeof result.then === 'function') {
+        return result.then(finish).catch(reject);
+      }
+      finish(result);
+      return result;
+    } catch (error) {
+      reject(error);
+      return undefined;
+    }
+  }
+
   familySelect.addEventListener('change', () => {
     rebuildFaceOptions();
     update();
   });
+  downloadButton.addEventListener('click', requestDownload);
   faceSelect.addEventListener('change', handleFaceChange);
   sizeInput.addEventListener('input', update);
   weightInput.addEventListener('input', update);
@@ -485,13 +666,14 @@ export function createFontPicker({
   return {
     element: root,
     getValue: currentValue,
-    setCollection(nextCollection) {
-      const previous = currentValue();
-      families = normalizeFontFamilies(nextCollection);
-      rebuildFamilyOptions(previous.familyName, previous);
-      apply(false);
-      return currentValue();
+    getAvailability() {
+      const family = selectedFamily();
+      if (!family) return { familyName: '', status: 'none' };
+      return family.availability === 'download-required'
+        ? { familyName: family.familyName, status: 'download-required', packageId: family.packageId, version: family.version }
+        : { familyName: family.familyName, status: 'ready' };
     },
+    setCollection,
     setValue(nextValue) {
       if (!isRecord(nextValue)) fail('setValue() expects an object.');
       const previous = currentValue();

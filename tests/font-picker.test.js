@@ -42,7 +42,7 @@ class FakeElement {
   }
 
   dispatch(name) {
-    for (const callback of this.listeners.get(name) ?? []) callback({ target: this });
+    return (this.listeners.get(name) ?? []).map(callback => callback({ target: this }));
   }
 
   queryByControl(control) {
@@ -86,6 +86,23 @@ test('normalizes the local system-font collection without losing Microsoft famil
 
   assert.deepEqual(result.map(item => item.familyName), ['Aptos', 'Segoe UI Variable']);
   assert.equal(result[1].faces[0].faceName, 'Segoe UI Variable Text');
+});
+
+test('normalizes approved bundled font families without changing their original names', () => {
+  const result = normalizeFontFamilies({
+    source: 'bundled',
+    families: [{
+      familyName: 'Inter',
+      faces: [{ faceName: 'Inter', style: 'normal', weight: 400, italic: false, oblique: false, axes: [
+        { tag: 'opsz', min: 14, default: 14, max: 32 },
+        { tag: 'wght', min: 100, default: 400, max: 900 }
+      ] }]
+    }]
+  });
+
+  assert.equal(result[0].familyName, 'Inter');
+  assert.equal(result[0].faces[0].faceName, 'Inter');
+  assert.deepEqual(result[0].faces[0].axes.map(axis => axis.tag), ['opsz', 'wght']);
 });
 
 test('merges repeated family records but retains distinct installed faces', () => {
@@ -410,4 +427,283 @@ test('preserves fractional values across the variable font weight axis', () => {
   assert.equal(picker.getValue().weight, 512.5);
   assert.equal(picker.getValue().axes.wght, 512.5);
   assert.equal(picker.element.queryByControl('preview').style.fontWeight, '512.5');
+});
+
+
+test('preserves exact operating-system family, face and PostScript names', () => {
+  const collection = systemCollection([
+    {
+      familyName: ' Aptos ',
+      faces: [{
+        faceName: ' Aptos Regular ',
+        postScriptName: ' Aptos-Regular ',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: []
+      }]
+    }
+  ]);
+
+  const result = normalizeFontFamilies(collection);
+  assert.equal(result[0].familyName, ' Aptos ');
+  assert.equal(result[0].faces[0].faceName, ' Aptos Regular ');
+  assert.equal(result[0].faces[0].postScriptName, ' Aptos-Regular ');
+  assert.equal(escapeFontFamily(' Aptos '), '" Aptos ", sans-serif');
+});
+
+test('rejects unapproved filesystem and source metadata at the UI boundary', () => {
+  const collectionExtra = systemCollection();
+  collectionExtra.downloadUrl = 'https://example.invalid/font';
+  assert.throws(() => normalizeFontFamilies(collectionExtra), /unsupported property.*downloadUrl/i);
+
+  const familyExtra = systemCollection();
+  familyExtra.families[0].path = '/Users/example/Fonts/Aptos.ttf';
+  assert.throws(() => normalizeFontFamilies(familyExtra), /unsupported property.*path/i);
+
+  const faceExtra = systemCollection();
+  faceExtra.families[0].faces[0].sha256 = 'a'.repeat(64);
+  assert.throws(() => normalizeFontFamilies(faceExtra), /unsupported property.*sha256/i);
+
+  const axisExtra = systemCollection([{
+    familyName: 'Variable',
+    faces: [{
+      faceName: 'Variable',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [{ tag: 'wght', min: 100, default: 400, max: 900, filePath: '/private/font.ttf' }]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(axisExtra), /unsupported property.*filePath/i);
+});
+
+test('rejects duplicate OpenType axis tags and inconsistent variable weight defaults', () => {
+  const duplicateTags = systemCollection([{
+    familyName: 'Duplicate Axes',
+    faces: [{
+      faceName: 'Duplicate Axes',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [
+        { tag: 'wght', min: 100, default: 400, max: 900 },
+        { tag: 'wght', min: 200, default: 400, max: 800 }
+      ]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(duplicateTags), /duplicate OpenType axis tag/i);
+
+  const weightMismatch = systemCollection([{
+    familyName: 'Weight Mismatch',
+    faces: [{
+      faceName: 'Weight Mismatch',
+      style: 'normal',
+      weight: 450,
+      italic: false,
+      oblique: false,
+      axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(weightMismatch), /wght axis default must match/i);
+});
+
+test('validates optional script and language tags without changing their exact values', () => {
+  const result = normalizeFontFamilies(systemCollection([{
+    familyName: 'Multilingual',
+    faces: [{
+      faceName: 'Multilingual Regular',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [],
+      scripts: ['Latn', 'Cyrl'],
+      languages: ['en', 'sr-Latn']
+    }]
+  }]));
+  assert.deepEqual(result[0].faces[0].scripts, ['Latn', 'Cyrl']);
+  assert.deepEqual(result[0].faces[0].languages, ['en', 'sr-Latn']);
+
+  const duplicate = systemCollection([{
+    familyName: 'Duplicate Scripts',
+    faces: [{
+      faceName: 'Duplicate Scripts',
+      style: 'normal',
+      weight: 400,
+      italic: false,
+      oblique: false,
+      axes: [],
+      scripts: ['Latn', 'Latn']
+    }]
+  }]);
+  assert.throws(() => normalizeFontFamilies(duplicate), /duplicate.*scripts/i);
+});
+
+
+function downloadableFontCollection(familyName = 'Orbit Sans') {
+  return {
+    source: 'catalogue',
+    families: [{
+      familyName,
+      availability: 'download-required',
+      packageId: 'google:orbit-sans',
+      version: '1.0.0',
+      faces: [{
+        faceName: familyName + ' Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+}
+
+test('shows catalogue fonts before download but blocks their use until installed', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload: () => {}
+  });
+
+  const family = picker.element.queryByControl('family');
+  const face = picker.element.queryByControl('face');
+  const preview = picker.element.queryByControl('preview');
+  const download = picker.element.queryByControl('download');
+  const size = picker.element.queryByControl('size');
+
+  assert.equal(family.disabled, false);
+  assert.equal(family.children[0].textContent, 'Orbit Sans (Download required)');
+  assert.deepEqual(picker.getAvailability(), {
+    familyName: 'Orbit Sans',
+    status: 'download-required',
+    packageId: 'google:orbit-sans',
+    version: '1.0.0'
+  });
+  assert.equal(face.disabled, true);
+  assert.equal(size.disabled, true);
+  assert.equal(preview.textContent, 'Download and install this font to use it.');
+  assert.equal(preview.style.fontFamily, '');
+  assert.equal(download.hidden, false);
+  assert.equal(download.disabled, false);
+});
+
+test('requests a Brightdesk font package and refreshes the picker after local installation', () => {
+  let request;
+  const installed = {
+    source: 'bundled',
+    families: [{
+      familyName: 'Orbit Sans',
+      faces: [{
+        faceName: 'Orbit Sans Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload(value) {
+      request = value;
+      return installed;
+    }
+  });
+
+  picker.element.queryByControl('download').dispatch('click');
+
+  assert.deepEqual(request, {
+    familyName: 'Orbit Sans',
+    packageId: 'google:orbit-sans',
+    version: '1.0.0'
+  });
+  assert.equal(picker.getAvailability().status, 'ready');
+  assert.equal(picker.element.queryByControl('download').hidden, true);
+  assert.equal(picker.element.queryByControl('face').disabled, false);
+  assert.equal(picker.getValue().familyName, 'Orbit Sans');
+  assert.equal(picker.getValue().faceName, 'Orbit Sans Variable');
+});
+
+test('a font already installed locally remains ready even when its catalogue record says download required', () => {
+  const result = normalizeFontFamilies({
+    source: 'combined',
+    families: [
+      {
+        familyName: 'Aptos',
+        availability: 'download-required',
+        packageId: 'microsoft:aptos',
+        version: '1.0.0',
+        faces: [
+          { faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] },
+          { faceName: 'Aptos Bold', style: 'normal', weight: 700, italic: false, oblique: false, axes: [] }
+        ]
+      },
+      {
+        familyName: 'Aptos',
+        availability: 'ready',
+        faces: [{ faceName: 'Aptos', style: 'normal', weight: 400, italic: false, oblique: false, axes: [] }]
+      }
+    ]
+  });
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].availability, undefined);
+  assert.equal(result[0].packageId, undefined);
+  assert.deepEqual(result[0].faces.map(face => face.faceName), ['Aptos']);
+});
+
+test('rejects catalogue-only fonts that lack a safe Brightdesk package identity', () => {
+  const invalid = downloadableFontCollection();
+  delete invalid.families[0].packageId;
+  assert.throws(() => normalizeFontFamilies(invalid), /packageId/);
+});
+
+
+test('awaits the Brightdesk package request before exposing a downloaded font', async () => {
+  const installed = {
+    source: 'bundled',
+    families: [{
+      familyName: 'Orbit Sans',
+      faces: [{
+        faceName: 'Orbit Sans Variable',
+        style: 'normal',
+        weight: 400,
+        italic: false,
+        oblique: false,
+        axes: [{ tag: 'wght', min: 100, default: 400, max: 900 }]
+      }]
+    }]
+  };
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection(),
+    onDownload: async () => installed
+  });
+
+  const request = picker.element.queryByControl('download').dispatch('click')[0];
+  assert.equal(picker.getAvailability().status, 'download-required');
+  assert.equal(picker.element.queryByControl('download').disabled, true);
+  await request;
+  assert.equal(picker.getAvailability().status, 'ready');
+  assert.equal(picker.element.queryByControl('face').disabled, false);
+});
+
+test('keeps catalogue-only fonts visible but disables downloading when no Brightdesk handler is connected', () => {
+  const picker = createFontPicker({
+    document: fakeDocument,
+    collection: downloadableFontCollection()
+  });
+
+  assert.equal(picker.element.queryByControl('family').children[0].textContent, 'Orbit Sans (Download required)');
+  assert.equal(picker.element.queryByControl('download').hidden, false);
+  assert.equal(picker.element.queryByControl('download').disabled, true);
+  assert.match(picker.element.queryByControl('availability').textContent, /Brightdesk updates/);
 });

@@ -22,7 +22,7 @@ concurrency:
 jobs:
   quality:
     name: Verify shared visual and typography foundations
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - name: Check out Brightdesk Design System
