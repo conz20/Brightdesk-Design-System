@@ -55,26 +55,67 @@ function faceKey(face) {
  * Exact OS-reported family and face names are preserved. Repeated family
  * records are coalesced without discarding their distinct installed faces.
  */
+function normalizePackageIdentity(value, label, pattern) {
+  const exact = requireText(value, label);
+  if (!pattern.test(exact)) fail(label + ' contains unsupported characters.');
+  return exact;
+}
+
+/**
+ * Normalize local system, bundled and Brightdesk catalogue font records.
+ * Catalogue-only families remain visible but carry no usable face until their
+ * Brightdesk package has been downloaded, verified and installed locally.
+ */
 export function normalizeFontFamilies(collection) {
-  if (!isRecord(collection) || !['system', 'bundled', 'combined'].includes(collection.source) || !Array.isArray(collection.families)) {
-    fail('collection must be a normalized local system or bundled font collection.');
+  if (!isRecord(collection) || !['system', 'bundled', 'catalogue', 'combined'].includes(collection.source) || !Array.isArray(collection.families)) {
+    fail('collection must be a normalized system, bundled, catalogue or combined font collection.');
   }
   requireAllowedKeys(collection, ['source', 'platform', 'provider', 'families'], 'collection');
 
   const byName = new Map();
   for (const [familyIndex, family] of collection.families.entries()) {
     if (!isRecord(family)) fail('families[' + familyIndex + '] must be an object.');
-    requireAllowedKeys(family, ['familyName', 'faces'], 'families[' + familyIndex + ']');
+    requireAllowedKeys(family, ['familyName', 'faces', 'availability', 'packageId', 'version'], 'families[' + familyIndex + ']');
     const familyName = requireText(family.familyName, 'families[' + familyIndex + '].familyName');
+    const availability = family.availability || (collection.source === 'catalogue' ? 'download-required' : 'ready');
+    if (!['ready', 'download-required'].includes(availability)) {
+      fail('families[' + familyIndex + '].availability must be ready or download-required.');
+    }
+    if (collection.source === 'system' && availability !== 'ready') {
+      fail('local system fonts cannot require a download.');
+    }
+    let packageId;
+    let version;
+    if (availability === 'download-required') {
+      packageId = normalizePackageIdentity(family.packageId, 'families[' + familyIndex + '].packageId', /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/);
+      version = normalizePackageIdentity(family.version, 'families[' + familyIndex + '].version', /^[A-Za-z0-9][A-Za-z0-9._+-]{0,79}$/);
+    } else if (family.packageId !== undefined || family.version !== undefined) {
+      packageId = normalizePackageIdentity(family.packageId, 'families[' + familyIndex + '].packageId', /^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/);
+      version = normalizePackageIdentity(family.version, 'families[' + familyIndex + '].version', /^[A-Za-z0-9][A-Za-z0-9._+-]{0,79}$/);
+    }
     if (!Array.isArray(family.faces) || family.faces.length === 0) {
-      fail('families[' + familyIndex + '].faces must contain at least one installed face.');
+      fail('families[' + familyIndex + '].faces must contain at least one face record.');
     }
 
     const key = familyName.toLocaleLowerCase('en-US');
     let normalized = byName.get(key);
     if (!normalized) {
-      normalized = { familyName, faces: [], _faceKeys: new Set() };
+      normalized = {
+        familyName,
+        faces: [],
+        availability,
+        packageId,
+        version,
+        _faceKeys: new Set()
+      };
       byName.set(key, normalized);
+    } else if (availability === 'ready') {
+      normalized.availability = 'ready';
+      delete normalized.packageId;
+      delete normalized.version;
+    } else if (normalized.availability === 'download-required' &&
+      (normalized.packageId !== packageId || normalized.version !== version)) {
+      fail('duplicate catalogue family records have conflicting Brightdesk package identities.');
     }
 
     for (const [faceIndex, face] of family.faces.entries()) {
@@ -153,9 +194,10 @@ export function normalizeFontFamilies(collection) {
   }
 
   return [...byName.values()]
-    .map(({ familyName, faces }) => ({
+    .map(({ familyName, faces, availability, packageId, version }) => ({
       familyName,
-      faces: faces.sort((a, b) => a.style.localeCompare(b.style) || a.weight - b.weight || a.faceName.localeCompare(b.faceName))
+      faces: faces.sort((a, b) => a.style.localeCompare(b.style) || a.weight - b.weight || a.faceName.localeCompare(b.faceName)),
+      ...(availability === 'download-required' ? { availability, packageId, version } : {})
     }))
     .sort((a, b) => a.familyName.localeCompare(b.familyName, 'en', { sensitivity: 'base' }));
 }
