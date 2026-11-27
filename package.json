@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Shared visual foundations and framework-neutral UI components for Brightdesk.",
   "engines": {
-    "node": "24.22.2"
+    "node": "24.22.3"
   },
   "exports": {
     "./font-picker": "./components/font-picker.js",

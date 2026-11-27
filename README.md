@@ -80,13 +80,13 @@ The shared local typography picker is implemented in `components/font-picker.js`
 
 Load `css/tokens.css` before `css/font-picker.css`, and call `createFontPicker({ document, collection, onChange })` with the normalized collection returned by Type Preview. Product integration is not yet complete. Pages ribbon wiring, real Electron rendering, assistive-technology checks, complex-script shaping, and native verification on Windows/macOS/Linux remain separate gates.
 
-The base shared picker is in `feature/font-picker-system-discovery-2026-11-09`. Installed-face and variable-axis controls are developed in `feature/font-picker-face-and-axis-controls-2026-11-09`. Focused behavioural checks passed in the authoring environment; the new branch still requires the repository's Node.js 24.22.2 `npm run verify` check before it is test-gated.
+The base shared picker is in `feature/font-picker-system-discovery-2026-11-09`. Installed-face and variable-axis controls are developed in `feature/font-picker-face-and-axis-controls-2026-11-09`. Focused behavioural checks passed in the authoring environment; the new branch still requires the repository's Node.js 24.22.3 `npm run verify` check before it is test-gated.
 
 
 ## GitHub Packages distribution
 
 The reusable design-system JavaScript and CSS sources are prepared as the scoped npm package `@conz20/brightdesk-design-system` on GitHub Packages. The package exposes the font picker at `@conz20/brightdesk-design-system/font-picker` and shared styles through the `./styles/*` export path.
 
-Publishing is release-gated. Pull requests and ordinary pushes run quality checks only. An explicitly published GitHub Release with a `v*` tag triggers `.github/workflows/publish-github-package.yml`, which reruns the Node.js 24.22.2 verification suite before publishing with the repository-scoped `GITHUB_TOKEN`. No personal access token or external registry credential is stored.
+Publishing is release-gated. Pull requests and ordinary pushes run quality checks only. An explicitly published GitHub Release with a `v*` tag triggers `.github/workflows/publish-github-package.yml`, which reruns the Node.js 24.22.3 verification suite before publishing with the repository-scoped `GITHUB_TOKEN`. No personal access token or external registry credential is stored.
 
 The GitHub package is an additional developer/CI distribution route. Brightdesk desktop products continue to use checked-in local copies of shared CSS and JavaScript so installed products remain offline-capable and do not require a package registry at runtime. This setup does not publish the package or create the Brightdesk 0.1.0 product release.
