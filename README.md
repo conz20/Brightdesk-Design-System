@@ -80,7 +80,7 @@ The shared local typography picker is implemented in `components/font-picker.js`
 
 Load `css/tokens.css` before `css/font-picker.css`, and call `createFontPicker({ document, collection, onChange })` with the normalized collection returned by Type Preview. Product integration is not yet complete. Pages ribbon wiring, real Electron rendering, assistive-technology checks, complex-script shaping, and native verification on Windows/macOS/Linux remain separate gates.
 
-The base shared picker is in `feature/font-picker-system-discovery-2026-11-09`. Installed-face and variable-axis controls are developed in `feature/font-picker-face-and-axis-controls-2026-11-09`. Focused behavioural checks passed in the authoring environment; the new branch still requires the repository's Node.js 24.22.3 `npm run verify` check before it is test-gated.
+The base shared picker is in `feature/font-picker-system-discovery-2026-11-09`. Installed-face and variable-axis controls are developed in `feature/font-picker-face-and-axis-controls-2026-11-09`. Focused behavioural checks passed in the authoring environment. The exact branch must pass the pinned Node.js 24.22.3 `npm run verify` check before it is considered test-gated.
 
 
 ## GitHub Packages distribution
