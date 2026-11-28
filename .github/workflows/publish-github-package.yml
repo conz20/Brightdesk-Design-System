@@ -23,10 +23,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
         with:
           ref: ${{ github.event.release.tag_name }}
-      - name: Set up Node.js 24.22.2 and GitHub npm registry
+      - name: Set up Node.js 24.22.3 and GitHub npm registry
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # pinned setup-node action
         with:
-          node-version: 24.22.2
+          node-version: 24.22.3
           registry-url: https://npm.pkg.github.com
           scope: '@conz20'
       - name: Verify release tag matches package version
