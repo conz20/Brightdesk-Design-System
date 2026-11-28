@@ -1,11 +1,27 @@
 {
-  "name": "brightdesk-design-system",
+  "name": "@conz20/brightdesk-design-system",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Shared visual foundations and framework-neutral UI components for Brightdesk.",
   "engines": {
-    "node": "24.22.2"
+    "node": "24.22.3"
+  },
+  "exports": {
+    "./font-picker": "./components/font-picker.js",
+    "./styles/*": "./css/*"
+  },
+  "files": [
+    "components/",
+    "css/",
+    "assets/navigation-states.svg",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/conz20/Brightdesk-Design-System.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
     "check": "node --check components/font-picker.js && node --check tests/font-picker.test.js && node --check tests/motion-foundation.test.mjs",

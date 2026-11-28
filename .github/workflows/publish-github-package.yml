@@ -1,0 +1,48 @@
+name: Publish Brightdesk Design System to GitHub Packages
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: design-system-package-release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and publish npm package
+    if: startsWith(github.event.release.tag_name, 'v') && !github.event.release.prerelease
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    steps:
+      - name: Check out the released source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - name: Set up Node.js 24.22.3 and GitHub npm registry
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # pinned setup-node action
+        with:
+          node-version: 24.22.3
+          registry-url: https://npm.pkg.github.com
+          scope: '@conz20'
+      - name: Verify release tag matches package version
+        shell: bash
+        run: |
+          package_version="$(node -p 'require("./package.json").version')"
+          expected_tag="v${package_version}"
+          if [ "${GITHUB_REF_NAME}" != "${expected_tag}" ]; then
+            printf 'Refusing to publish: release tag %s does not match package version %s.\n' "${GITHUB_REF_NAME}" "${expected_tag}" >&2
+            exit 1
+          fi
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify runtime, syntax and tests
+        run: npm run verify
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
