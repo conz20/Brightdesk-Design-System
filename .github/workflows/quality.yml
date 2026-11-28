@@ -39,6 +39,7 @@ jobs:
           if [ -f package.json ]; then
             npm ci --no-audit --no-fund
             npm run verify
+            npm pack --dry-run
           else
             node --check tests/product-window-shell.test.mjs
             node --test tests/*.test.mjs
