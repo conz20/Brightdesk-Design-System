@@ -21,8 +21,8 @@ test('package manifest and lockfile use the exact Brightdesk Node.js pin', () =>
 test('quality and publishing workflows use Node.js 24.22.3', () => {
   assert.match(qualityWorkflow, /node-version:\s*24\.22\.3/);
   assert.match(publishWorkflow, /node-version:\s*24\.22\.3/);
-  assert.doesNotMatch(qualityWorkflow, /24\.22\.3/);
-  assert.doesNotMatch(publishWorkflow, /24\.22\.3/);
+  assert.doesNotMatch(qualityWorkflow, /24\.22\.2/);
+  assert.doesNotMatch(publishWorkflow, /24\.22\.2/);
 });
 
 test('quality checks the npm package contents without publishing', () => {
@@ -41,5 +41,5 @@ test('publishing is limited to an explicit owner release and uses the repository
 
 test('README documents the approved Node.js runtime consistently', () => {
   assert.match(readme, /24\.22\.3/);
-  assert.doesNotMatch(readme, /24\.22\.3/);
+  assert.doesNotMatch(readme, /24\.22\.2/);
 });
