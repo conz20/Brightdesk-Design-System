@@ -25,6 +25,20 @@ test('quality and publishing workflows use Node.js 24.22.2', () => {
   assert.doesNotMatch(publishWorkflow, /24\.22\.3/);
 });
 
+test('quality checks the npm package contents without publishing', () => {
+  assert.match(qualityWorkflow, /npm pack --dry-run/);
+  assert.doesNotMatch(qualityWorkflow, /npm publish/);
+});
+
+test('publishing is limited to an explicit owner release and uses the repository token', () => {
+  assert.match(publishWorkflow, /release:\s*\n\s+types:\s*\[published\]/);
+  assert.match(publishWorkflow, /github\.actor == github\.repository_owner/);
+  assert.match(publishWorkflow, /!github\.event\.release\.prerelease/);
+  assert.match(publishWorkflow, /packages:\s*write/);
+  assert.match(publishWorkflow, /NODE_AUTH_TOKEN:\s*\$\{\{ secrets\.GITHUB_TOKEN \}\}/);
+  assert.match(publishWorkflow, /npm pack --dry-run[\s\S]*run: npm publish/);
+});
+
 test('README documents the approved Node.js runtime consistently', () => {
   assert.match(readme, /24\.22\.2/);
   assert.doesNotMatch(readme, /24\.22\.3/);
