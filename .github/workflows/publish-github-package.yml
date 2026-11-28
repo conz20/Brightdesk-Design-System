@@ -16,8 +16,8 @@ jobs:
   publish:
     name: Verify and publish npm package
     if: startsWith(github.event.release.tag_name, 'v') && !github.event.release.prerelease
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 20
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
     steps:
       - name: Check out the released source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pinned checkout action
